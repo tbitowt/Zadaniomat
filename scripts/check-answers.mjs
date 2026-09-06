@@ -162,6 +162,8 @@ const readProblems = (sheet) =>
       circled: [...el.querySelectorAll('.mark-num')].map((x) => (x.classList.contains('marked') ? 1 : 0)),
       hands: el.querySelectorAll('.clock-hand').length,
       sign: el.querySelector('.cmp-sign')?.textContent.trim() ?? null,
+      cells: [...el.querySelectorAll('.pixel-cell')].map((x) => x.textContent.trim()),
+      fills: [...el.querySelectorAll('.pixel-cell')].map((x) => x.style.background || ''),
     })),
   );
 
@@ -291,6 +293,109 @@ for (const [n, c] of otherCases.entries()) {
     console.log('   ', JSON.stringify(errs.slice(0, 3)));
   }
 }
+
+// --- zapis krokowy i kolorowanka ---
+
+/** Wartość jednego kroku, np. „(60+50)+(4+2)” albo „56+30-1”. */
+const flatten = (text) => (text.match(/[+-]?\d+/g) ?? []).reduce((a, x) => a + Number(x), 0);
+const evalStep = (text) => {
+  let t = text;
+  while (/\(([^()]+)\)/.test(t)) t = t.replace(/\(([^()]+)\)/, (_, inner) => String(flatten(inner)));
+  return flatten(t);
+};
+
+/** Wartość działania z kratki kolorowanki, np. „7+5”, „9−4”, „3×2”. */
+const cellValue = (text) => {
+  const m = /^(\d+)([+−×-])(\d+)$/.exec(text);
+  if (!m) return NaN;
+  const [, a, op, b] = m;
+  return op === '+' ? +a + +b : op === '×' ? +a * +b : +a - +b;
+};
+
+checks.steps = (t, a) => {
+  const parts = t.data.steps.split('|');
+  const values = parts.map(evalStep);
+  if (new Set(values).size !== 1) return `kroki mają różne wartości: ${t.data.steps}`;
+  if (values.some((v) => v < 0)) return `ujemna wartość w krokach: ${t.data.steps}`;
+  const answers = t.data.answers === '' ? [] : t.data.answers.split(',');
+  if (!answers.length) return 'zadanie bez niewiadomej';
+  if (t.blanks !== answers.length) return 'liczba kratek nie zgadza się z zakrytymi liczbami';
+  if (a.answers.join(',') !== answers.join(',')) return `złe odpowiedzi: ${a.answers}`;
+  return null;
+};
+
+checks.pixel = (t, a) => {
+  const palette = t.data.palette.split(',').map(Number);
+  const colors = t.data.colors.split(',').map(Number);
+  if (new Set(palette).size !== palette.length) return 'dwa kolory mają ten sam wynik';
+  if (t.cells.length !== colors.length) return 'liczba kratek nie zgadza się z obrazkiem';
+  for (const [i, text] of t.cells.entries()) {
+    if (cellValue(text) !== palette[colors[i]]) {
+      return `kratka ${i}: „${text}” nie daje ${palette[colors[i]]}`;
+    }
+  }
+  if (a.cells.some((text) => text !== '')) return 'arkusz odpowiedzi zostawia działania na obrazku';
+  // każdy kolor wypełniony jednakowo i różny od pozostałych
+  const fills = new Map();
+  for (const [i, color] of colors.entries()) {
+    if (!fills.has(color)) fills.set(color, a.fills[i]);
+    else if (fills.get(color) !== a.fills[i]) return 'jeden kolor wypełniony na dwa sposoby';
+  }
+  if (new Set([...fills.values()]).size !== fills.size) return 'dwa kolory wypełnione tak samo';
+  return null;
+};
+
+const stepCases = [
+  { card: 'Dodawanie ze strategią', tweak: async () => {} },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Ile podpowiedzi', 'short') },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Ile podpowiedzi', 'bare') },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Strategia', 'doubles') },
+  { card: 'Dodawanie ze strategią', tweak: async (p) => { await setSelect(p, 'Strategia', 'doubles'); await setSelect(p, 'Co ćwiczymy', 'near'); } },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Strategia', 'pairsOfTen') },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Strategia', 'splitTens') },
+  { card: 'Dodawanie ze strategią', tweak: async (p) => { await setSelect(p, 'Strategia', 'splitTens'); await toggle(p, 'Jedności bez przekraczania progu'); } },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Strategia', 'roundAdjust') },
+  { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Strategia', 'moveUnits') },
+  { card: 'Kolorowanka według wyniku', tweak: async () => {} },
+  { card: 'Kolorowanka według wyniku', tweak: async (p) => { await setSelect(p, 'Wzór', 'dom'); await toggle(p, 'Odejmowanie'); await setNumber(p, 'Największy wynik', 20); } },
+  { card: 'Kolorowanka według wyniku', tweak: async (p) => { await setSelect(p, 'Wzór', 'zaglowka'); await toggle(p, 'Mnożenie'); await setNumber(p, 'Największy wynik', 24); } },
+];
+
+for (const [n, c] of stepCases.entries()) {
+  await openCard(p, c.card);
+  await c.tweak(p);
+  await p.getByText('Dołącz arkusz odpowiedzi').click();
+  await p.waitForTimeout(300);
+  const task = await readProblems('.sheet:first-of-type');
+  const done = await readProblems('.sheet:last-of-type');
+  const errs = task.map((t, i) => checks[t.data.kind](t, done[i])).filter(Boolean);
+  console.log(`${n + 1}. ${c.card}: ${task.length} zadań, błędne: ${errs.length}`);
+  if (errs.length || !task.length) {
+    bad++;
+    console.log('   ', JSON.stringify(errs.slice(0, 3)));
+  }
+}
+
+// --- ramka „wyjaśnienie i przykłady” ---
+
+await openCard(p, 'Dodawanie ze strategią');
+await p.getByText('Zacznij od wyjaśnienia i przykładów').click();
+await setNumber(p, 'Ile przykładów', 3);
+await p.getByText('Dołącz arkusz odpowiedzi').click();
+await p.waitForTimeout(400);
+const intro = await p.$eval('.sheet:first-of-type .intro', (el) => ({
+  rule: el.querySelector('.intro-rule')?.textContent.trim() ?? '',
+  examples: el.querySelectorAll('.intro-example').length,
+  blanks: el.querySelectorAll('.blank').length,
+  answers: [...el.querySelectorAll('.answer')].length,
+}));
+const introErrs = [];
+if (intro.rule.length < 40) introErrs.push('brak reguły w ramce');
+if (intro.examples !== 3) introErrs.push(`przykładów ${intro.examples} zamiast 3`);
+if (intro.blanks) introErrs.push('przykład z pustą kratką — powinien być rozwiązany');
+if (!intro.answers) introErrs.push('przykłady bez wypełnionych liczb');
+console.log(`wyjaśnienie i przykłady: błędne: ${introErrs.length}`, introErrs);
+if (introErrs.length) bad++;
 
 // --- bloki: kilka konfiguracji tego samego typu na jednym arkuszu ---
 

@@ -199,6 +199,101 @@ await runData('Pieniądze — ile to razem?', async () => {
   return items.length === 5 && items.every((v) => [...ZL, ...BANK].includes(v)) && Number(r.total) <= 15000;
 }, 'pieniądze/z banknotami, 5 sztuk, do 150 zł');
 
+// --- strategie dodawania: czy zapis kroków pasuje do wybranej strategii ---
+
+const firstStep = (r) => r.steps.split('|')[0];
+const nums = (text) => (text.match(/\d+/g) ?? []).map(Number);
+const unitsOf = (n) => n % 10;
+
+const strategy = (name, tweak, test, label) =>
+  runData('Dodawanie ze strategią', async () => {
+    await setSelect(p, 'Strategia', name);
+    await tweak();
+  }, test, label);
+
+await strategy('toTen', () => setNumber(p, 'Największy wynik', 20), (r) => {
+  const [a, b] = nums(firstStep(r));
+  // dopełniamy pierwszą liczbę do dziesiątki, więc próg musi zostać przekroczony
+  return a + b <= 20 && Math.floor(a / 10) < Math.floor((a + b) / 10) && unitsOf(a) !== 0;
+}, 'strategie/dopełnienie do dziesiątki, wynik do 20');
+
+await strategy('doubles', async () => {
+  await setSelect(p, 'Co ćwiczymy', 'same');
+  await setNumber(p, 'Największa podwajana liczba', 10);
+}, (r) => {
+  const [a, b] = nums(firstStep(r));
+  return a === b && a <= 10;
+}, 'strategie/podwojenia do 10');
+
+await strategy('doubles', () => setSelect(p, 'Co ćwiczymy', 'near'), (r) => {
+  const [a, b] = nums(firstStep(r));
+  return Math.abs(a - b) === 1;
+}, 'strategie/prawie podwojenia');
+
+await strategy('pairsOfTen', () => setNumber(p, 'Największy wynik', 20), (r) => {
+  const t = nums(firstStep(r));
+  const pair = t[0] + t[1] === 10 || t[0] + t[2] === 10 || t[1] + t[2] === 10;
+  return t.length === 3 && pair && t.reduce((a, x) => a + x, 0) <= 20;
+}, 'strategie/para do 10 wśród trzech liczb');
+
+await strategy('splitTens', () => setNumber(p, 'Największy wynik', 200), (r) => {
+  const [a, b] = nums(firstStep(r));
+  return a >= 11 && b >= 11 && a + b <= 200 && unitsOf(a) + unitsOf(b) <= 9;
+}, 'strategie/rozbicie bez przekraczania progu');
+
+await strategy('roundAdjust', () => setNumber(p, 'Największy wynik', 100), (r) => {
+  const [a, b] = nums(firstStep(r));
+  return [8, 9].includes(unitsOf(b)) && a + b <= 100;
+}, 'strategie/druga liczba tuż przed dziesiątką');
+
+await strategy('moveUnits', () => setNumber(p, 'Największy wynik', 100), (r) => {
+  const [a, b] = nums(firstStep(r));
+  return unitsOf(b) >= 1 && unitsOf(b) <= 4 && unitsOf(a) + unitsOf(b) <= 9 && a + b <= 100;
+}, 'strategie/przerzucanie jedności');
+
+// poziom rusztowania decyduje o liczbie kroków w zapisie
+await runData('Dodawanie ze strategią', () => setSelect(p, 'Ile podpowiedzi', 'bare'),
+  (r) => r.steps.split('|').length === 2, 'strategie/samo działanie — dwa człony');
+await runData('Dodawanie ze strategią', () => setSelect(p, 'Ile podpowiedzi', 'short'),
+  (r) => r.steps.split('|').length === 3, 'strategie/skrócone — trzy człony');
+await runData('Dodawanie ze strategią', async () => {}, (r) => r.steps.split('|').length === 4,
+  'strategie/pełne rusztowanie — cztery człony');
+
+// --- kolorowanka ---
+
+await runData('Kolorowanka według wyniku', async () => {
+  await setSelect(p, 'Wzór', 'kotek');
+  await setNumber(p, 'Największy wynik', 10);
+}, (r) => {
+  const palette = r.palette.split(',').map(Number);
+  const colors = r.colors.split(',').map(Number);
+  return (
+    palette.every((v) => v >= 1 && v <= 10) &&
+    new Set(palette).size === palette.length &&
+    colors.length === Number(r.w) * 12 &&
+    colors.every((c) => c < palette.length)
+  );
+}, 'kolorowanka/wyniki różne i w zakresie');
+
+await openCard(p, 'Kolorowanka według wyniku');
+await p.waitForTimeout(300);
+const plusOnly = await p.$$eval('.sheet:first-of-type .pixel-cell', (els) =>
+  els.map((e) => e.textContent.trim()).filter((t) => !/^\d+\+\d+$/.test(t)),
+);
+console.log(`kolorowanka/same dodawanie: kratek nie na plus ${plusOnly.length}`, plusOnly.slice(0, 3));
+if (plusOnly.length) bad++;
+
+await openCard(p, 'Kolorowanka według wyniku');
+await toggle(p, 'Dodawanie');
+await toggle(p, 'Mnożenie');
+await setNumber(p, 'Największy wynik', 20);
+await p.waitForTimeout(300);
+const mulOnly = await p.$$eval('.sheet:first-of-type .pixel-cell', (els) =>
+  els.map((e) => e.textContent.trim()).filter((t) => !/^\d+×\d+$/.test(t)),
+);
+console.log(`kolorowanka/samo mnożenie: kratek nie na razy ${mulOnly.length}`, mulOnly.slice(0, 3));
+if (mulOnly.length) bad++;
+
 // --- krzyżówki ---
 const flatCells = (g) => g.rows.flat().filter(Boolean);
 

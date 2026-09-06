@@ -1,5 +1,7 @@
 import type { GeneratorDef } from '../types';
+import { additionStrategies } from './additionStrategies';
 import { clock } from './clock';
+import { coloring } from './coloring';
 import { comparison } from './comparison';
 import { completion } from './completion';
 import { crossword } from './crossword';
@@ -25,6 +27,7 @@ export const generators: GeneratorDef[] = [
   mentalMultiplication,
   writtenMultiplication,
   mentalDivision,
+  additionStrategies,
   completion,
   comparison,
   neighbours,
@@ -33,6 +36,7 @@ export const generators: GeneratorDef[] = [
   numberLine,
   clock,
   money,
+  coloring,
   crossword,
 ];
 

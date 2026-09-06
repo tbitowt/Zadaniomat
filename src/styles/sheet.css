@@ -468,6 +468,118 @@
   stroke-width: 0.75;
 }
 
+/* --- wyjaśnienie i przykłady nad blokiem --- */
+
+.intro {
+  margin: 0 0 5mm;
+  padding: 3mm 4mm;
+  border: 1pt solid #777;
+  border-radius: 2mm;
+  background: #f6f7f8;
+  break-inside: avoid;
+}
+
+.intro-rule {
+  margin: 0;
+  font-size: calc(var(--problem-size) - 2pt);
+  line-height: 1.45;
+}
+
+.intro-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3mm 8mm;
+  margin-top: 3mm;
+}
+
+.intro-example {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-size: var(--problem-size);
+}
+
+.intro-tag {
+  font-size: 8pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+/* --- zapis krokowy --- */
+
+/* długie łańcuchy kroków muszą móc się złamać na kilka linii */
+.steps {
+  white-space: normal;
+}
+
+.inline-problem .paren {
+  margin: 0 0.05em;
+}
+
+/* --- kolorowanka --- */
+
+.problem-pixel {
+  align-items: stretch;
+}
+
+/* obrazek zajmuje całą stronę — numer zadania nic tu nie wnosi */
+.problem-pixel .problem-no {
+  display: none;
+}
+
+.pixel-hint {
+  margin: 0 0 3mm;
+  font-size: calc(var(--problem-size) - 2pt);
+}
+
+.pixel {
+  flex: 1;
+  min-width: 0;
+}
+
+.pixel-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm 7mm;
+  margin-bottom: 4mm;
+  font-size: 10.5pt;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5mm;
+}
+
+/* kolory legendy i rozwiązania muszą wyjść na wydruku, a nie zniknąć */
+.legend-swatch {
+  width: 5mm;
+  height: 5mm;
+  border: 0.75pt solid #333;
+  border-radius: 1pt;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pixel-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--px), 1fr);
+}
+
+.pixel-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 0.5pt solid #999;
+  margin: -0.25pt 0 0 -0.25pt;
+  font-size: calc(var(--problem-size) - 5pt);
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 /* --- wydruk --- */
 
 @page {

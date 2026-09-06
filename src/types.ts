@@ -135,6 +135,47 @@ export interface NumberLineProblem {
   hidden: boolean[];
 }
 
+/** Element zapisu krokowego: liczba (może być zakryta), znak działania albo nawias. */
+export type StepToken =
+  | { kind: 'num'; value: number; hidden: boolean }
+  | { kind: 'op'; text: string }
+  | { kind: 'paren'; text: string };
+
+/**
+ * Działanie rozpisane na kroki: „8 + 5 = 8 + 2 + 3 = 10 + 3 = 13”.
+ * Każdy krok ma tę samą wartość — zmienia się tylko zapis, a uczeń uzupełnia
+ * zakryte liczby. Ile kroków zostaje na kartce, decyduje poziom rusztowania.
+ */
+export interface StepsProblem {
+  kind: 'steps';
+  steps: StepToken[][];
+}
+
+/** Kratka kolorowanki: działanie do policzenia i kolor, który oznacza jego wynik. */
+export interface PixelCell {
+  terms: number[];
+  op: Operator;
+  value: number;
+  /** Indeks koloru w palecie zadania. */
+  color: number;
+}
+
+/** Kolor z legendy kolorowanki. */
+export interface PixelColor {
+  name: string;
+  css: string;
+  /** Wynik działania, który każe pokolorować kratkę tym kolorem. */
+  value: number;
+}
+
+/** Obrazek ukryty w kratkach — uczeń liczy działania i koloruje według wyniku. */
+export interface PixelProblem {
+  kind: 'pixel';
+  width: number;
+  cells: PixelCell[];
+  palette: PixelColor[];
+}
+
 export type Problem =
   | InlineProblem
   | ColumnProblem
@@ -145,7 +186,9 @@ export type Problem =
   | MarkProblem
   | ClockProblem
   | MoneyProblem
-  | NumberLineProblem;
+  | NumberLineProblem
+  | StepsProblem
+  | PixelProblem;
 
 /** Część wspólna opisu pola konfiguracji. */
 interface FieldBase {
@@ -172,6 +215,16 @@ export type Field =
       options: { value: string; label: string }[];
     })
   | (FieldBase & {
+      /** Wczytanie obrazka (JPG/PNG) i zamiana go na siatkę kratek. */
+      kind: 'image';
+      /** Klucz pola liczbowego z szerokością siatki. */
+      widthKey: string;
+      /** Klucz pola liczbowego z liczbą kolorów. */
+      colorsKey: string;
+      /** Najwyższa dopuszczalna siatka — wyższe obrazki są przycinane proporcjonalnie. */
+      maxHeight: number;
+    })
+  | (FieldBase & {
       /** Lista „ilość cyfr” — jedno pole na każdą liczbę w działaniu. */
       kind: 'digitsList';
       /** Klucz pola liczbowego, które określa długość listy. */
@@ -188,7 +241,6 @@ export type Spacing = 'tight' | 'normal' | 'loose';
 /** Ustawienia arkusza wspólne dla wszystkich typów zadań. */
 export interface SheetOptions {
   title: string;
-  columns: number;
   answers: boolean;
   /** Ile różnych zestawów zadań wydrukować (np. dla każdego ucznia inny). */
   variants: number;
@@ -214,13 +266,28 @@ export interface SheetDefaults {
 export interface Section {
   config: Config;
   count: number;
+  /** Na ile kolumn rozłożyć zadania tego bloku. */
+  columns: number;
   /** Nagłówek drukowany nad blokiem; pusty tekst oznacza brak nagłówka. */
   heading: string;
+  /** Ramka z regułą i rozwiązanymi przykładami nad zadaniami bloku. */
+  intro: boolean;
+  /** Ile przykładów pokazać w ramce. */
+  introCount: number;
+}
+
+/** Wyjaśnienie drukowane nad blokiem: reguła i rozwiązane przykłady. */
+export interface Intro {
+  rule: string;
+  examples: Problem[];
 }
 
 /** Gotowy blok zadań przekazywany do arkusza. */
 export interface SheetBlock {
   heading: string;
+  columns: number;
+  /** Ramka „jak to policzyć” nad zadaniami; `null`, gdy blok jej nie ma. */
+  intro: Intro | null;
   problems: Problem[];
   /** Kratki na wynik i wiersz na przeniesienia — ustawienia z konfiguracji bloku. */
   grid: boolean;
@@ -239,6 +306,11 @@ export interface GeneratorDef {
   sheetDefaults: SheetDefaults;
   /** Zwraca komunikat błędu, jeśli konfiguracja jest niewykonalna. */
   validate?: (cfg: Config) => string | null;
+  /**
+   * Reguła drukowana w ramce nad blokiem — jedno, dwa zdania o tym, jak liczyć.
+   * Typy bez wyjaśnienia nie mają w formularzu opcji „wyjaśnienie i przykłady”.
+   */
+  explain?: (cfg: Config) => string | null;
   generate: (cfg: Config, count: number, rnd: Rnd) => Problem[];
 }
 

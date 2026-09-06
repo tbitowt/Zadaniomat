@@ -10,9 +10,12 @@ import type {
   MoneyProblem,
   NeighborProblem,
   NumberLineProblem,
+  PixelProblem,
   Problem,
   SequenceProblem,
   SheetBlock,
+  StepsProblem,
+  StepToken,
   SheetOptions,
 } from '../types';
 
@@ -399,6 +402,85 @@ function NumberLine({ problem, showAnswer }: { problem: NumberLineProblem; showA
   );
 }
 
+/**
+ * Zapis krokowy: kolejne człony rozdzielone znakiem „=”. Liczby, które uczeń
+ * ma policzyć, są zakryte; reszta zapisu podpowiada, jak liczyć.
+ */
+function Steps({ problem, showAnswer }: { problem: StepsProblem; showAnswer: boolean }) {
+  return (
+    <span className="inline-problem steps">
+      {problem.steps.map((step, s) => (
+        <Fragment key={s}>
+          {s > 0 && <span className="op">=</span>}
+          {step.map((token, i) => {
+            if (token.kind === 'op') {
+              return (
+                <span className="op" key={i}>
+                  {token.text}
+                </span>
+              );
+            }
+            if (token.kind === 'paren') {
+              return (
+                <span className="paren" key={i}>
+                  {token.text}
+                </span>
+              );
+            }
+            if (!token.hidden) {
+              return (
+                <span className="term" key={i}>
+                  {token.value}
+                </span>
+              );
+            }
+            return showAnswer ? (
+              <span className="answer" key={i}>
+                {token.value}
+              </span>
+            ) : (
+              <span className="blank blank-narrow" key={i} />
+            );
+          })}
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Kolorowanka: legenda „wynik → kolor” i siatka kratek z działaniami.
+ * Arkusz odpowiedzi pokazuje sam pokolorowany obrazek.
+ */
+function Pixel({ problem, showAnswer }: { problem: PixelProblem; showAnswer: boolean }) {
+  return (
+    <div className="pixel">
+      {!showAnswer && <p className="pixel-hint">Policz działania i pokoloruj kratki według legendy.</p>}
+      <div className="pixel-legend">
+        {problem.palette.map((color, i) => (
+          <span className="legend-item" key={i}>
+            <span className="legend-swatch" style={{ background: color.css }} />
+            <span className="legend-text">
+              {color.value} — {color.name}
+            </span>
+          </span>
+        ))}
+      </div>
+      <div className="pixel-grid" style={{ ['--px' as string]: problem.width }}>
+        {problem.cells.map((cell, i) => (
+          <span
+            className="pixel-cell"
+            key={i}
+            style={showAnswer ? { background: problem.palette[cell.color].css } : undefined}
+          >
+            {showAnswer ? '' : `${cell.terms[0]}${SIGN[cell.op]}${cell.terms[1]}`}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProblemView({
   problem,
   showAnswer,
@@ -429,6 +511,10 @@ function ProblemView({
       return <Money problem={problem} showAnswer={showAnswer} />;
     case 'numberline':
       return <NumberLine problem={problem} showAnswer={showAnswer} />;
+    case 'steps':
+      return <Steps problem={problem} showAnswer={showAnswer} />;
+    case 'pixel':
+      return <Pixel problem={problem} showAnswer={showAnswer} />;
     default:
       return <Column problem={problem} showAnswer={showAnswer} grid={grid} carryRow={carryRow} />;
   }
@@ -436,6 +522,10 @@ function ProblemView({
 
 /** Dane zadania w atrybutach — z nich korzystają skrypty sprawdzające wydruk. */
 const flags = (xs: boolean[]) => xs.map((x) => (x ? 1 : 0)).join(',');
+
+/** Krok zapisany zwykłymi znakami, np. „8+2+3” — z tego korzystają skrypty sprawdzające. */
+const stepText = (step: StepToken[]) =>
+  step.map((t) => (t.kind === 'num' ? String(t.value) : t.text)).join('').replace(/−/g, '-');
 
 function problemData(p: Problem): Record<string, string> {
   switch (p.kind) {
@@ -480,6 +570,23 @@ function problemData(p: Problem): Record<string, string> {
       };
     case 'money':
       return { 'data-kind': 'money', 'data-items': p.items.join(','), 'data-total': String(p.total) };
+    case 'steps':
+      return {
+        'data-kind': 'steps',
+        'data-steps': p.steps.map(stepText).join('|'),
+        'data-answers': p.steps
+          .flat()
+          .filter((t) => t.kind === 'num' && t.hidden)
+          .map((t) => (t.kind === 'num' ? t.value : ''))
+          .join(','),
+      };
+    case 'pixel':
+      return {
+        'data-kind': 'pixel',
+        'data-w': String(p.width),
+        'data-palette': p.palette.map((c) => c.value).join(','),
+        'data-colors': p.cells.map((c) => c.color).join(','),
+      };
     case 'numberline':
       return { 'data-kind': 'numberline', 'data-values': p.values.join(','), 'data-hidden': flags(p.hidden) };
     default:
@@ -542,9 +649,24 @@ function Page({
       {blocks.map((block, b) => (
         <section className="block" key={b}>
           {block.heading && <h2 className="block-heading">{block.heading}</h2>}
+          {block.intro && (
+            <div className="intro">
+              <p className="intro-rule">{block.intro.rule}</p>
+              {block.intro.examples.length > 0 && (
+                <div className="intro-examples">
+                  {block.intro.examples.map((example, e) => (
+                    <div className="intro-example" key={e}>
+                      <span className="intro-tag">Przykład</span>
+                      <ProblemView problem={example} showAnswer grid={false} carryRow={false} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <ol
             className={sheet.numbering ? 'problems' : 'problems problems-plain'}
-            style={{ ['--columns' as string]: sheet.columns }}
+            style={{ ['--columns' as string]: block.columns }}
           >
             {block.problems.map((p, i) => (
               <li key={i} className={problemClass(p)} {...problemData(p)}>

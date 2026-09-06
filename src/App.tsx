@@ -5,7 +5,7 @@ import { generators, getGenerator } from './generators';
 import { createRnd, randomSeed } from './rng';
 import type { GeneratorDef, Section, SheetBlock, SheetOptions } from './types';
 
-const sheetBase: Omit<SheetOptions, 'title' | 'columns'> = {
+const sheetBase: Omit<SheetOptions, 'title'> = {
   answers: false,
   variants: 1,
   nameLine: true,
@@ -34,18 +34,24 @@ function firstBadBlock(def: GeneratorDef, sections: Section[]) {
 const buildPages = (def: GeneratorDef, sections: Section[], variants: number, seed: number): SheetBlock[][] =>
   Array.from({ length: variants }, (_, i) => {
     const rnd = createRnd(variantSeed(seed, i));
-    return sections.map((s) => ({
-      heading: s.heading,
-      problems: def.generate(s.config, s.count, rnd),
-      grid: s.config.grid === true,
-      carryRow: s.config.carryRow === true,
-    }));
+    return sections.map((s) => {
+      // wyjaśnienie idzie przed zadaniami, więc i przykłady losujemy jako pierwsze
+      const rule = s.intro ? (def.explain?.(s.config) ?? null) : null;
+      return {
+        heading: s.heading,
+        columns: s.columns,
+        intro: rule ? { rule, examples: def.generate(s.config, s.introCount, rnd) } : null,
+        problems: def.generate(s.config, s.count, rnd),
+        grid: s.config.grid === true,
+        carryRow: s.config.carryRow === true,
+      };
+    });
   });
 
 export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
-  const [sheet, setSheet] = useState<SheetOptions>({ title: '', columns: 3, ...sheetBase });
+  const [sheet, setSheet] = useState<SheetOptions>({ title: '', ...sheetBase });
   const [seed, setSeed] = useState(randomSeed);
 
   const def = activeId ? getGenerator(activeId) : undefined;
@@ -53,8 +59,17 @@ export default function App() {
   const open = (id: string) => {
     const g = getGenerator(id)!;
     setActiveId(id);
-    setSections([{ config: { ...g.defaults }, count: g.sheetDefaults.count, heading: '' }]);
-    setSheet({ title: g.title, columns: g.sheetDefaults.columns, ...sheetBase });
+    setSections([
+      {
+        config: { ...g.defaults },
+        count: g.sheetDefaults.count,
+        columns: g.sheetDefaults.columns,
+        heading: '',
+        intro: false,
+        introCount: 2,
+      },
+    ]);
+    setSheet({ title: g.title, ...sheetBase });
     setSeed(randomSeed());
   };
 

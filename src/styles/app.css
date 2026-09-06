@@ -266,6 +266,33 @@ body {
   border-color: var(--accent);
 }
 
+/* --- wczytany obrazek do kolorowanki --- */
+
+.file-input {
+  font: inherit;
+  font-size: 13px;
+}
+
+.picture-preview {
+  margin-top: 8px;
+}
+
+.picture-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--px), 1fr);
+  width: 150px;
+  border: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+
+.picture-grid span {
+  aspect-ratio: 1;
+}
+
+.field-error {
+  color: #a12727;
+}
+
 .alert {
   margin: 12px 0 0;
   padding: 10px 12px;

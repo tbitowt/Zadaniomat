@@ -1,9 +1,12 @@
-// Pomocniki do sterowania formularzem — etykiety bywają swoimi podłańcuchami
+// Pomocniki do sterowania formularzem. Etykiety bywają swoimi podłańcuchami
 // („Przeniesienia” i „Wiersz na przeniesienia”), więc szukamy pola po typie
-// kontrolki wewnątrz pasującej etykiety.
+// kontrolki wewnątrz pasującej etykiety. Dopasowujemy się do samego napisu
+// etykiety, a nie do całego pola — inaczej trafiałaby też podpowiedź pod nim
+// albo treść listy rozwijanej („gotowy wzór” w polu „Skąd obrazek”).
 export const APP_URL = 'http://localhost:5199/';
 
-const field = (page, label) => page.locator('label.field', { hasText: label });
+const field = (page, label) =>
+  page.locator('label.field').filter({ has: page.locator('.field-label', { hasText: label }) });
 
 export const setSelect = (page, label, value) =>
   field(page, label).locator('select').first().selectOption(value);

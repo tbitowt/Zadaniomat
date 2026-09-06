@@ -24,6 +24,7 @@ npm run check    # weryfikacja poprawności generatorów (wymaga działającego 
 | Mnożenie w pamięci | tabliczka mnożenia (zakres czynników) albo liczba cyfr czynników, maksymalny wynik, mnożenie przez 0 i 1, szukana liczba |
 | Mnożenie pisemne | cyfry mnożnej i mnożnika, przeniesienia, wiersze na iloczyny częściowe, kratki na wynik, wiersz na przeniesienia |
 | Dzielenie w pamięci | zakres dzielnika, największa dzielna, największy wynik, dzielenie przez 1, dzielenie z resztą, szukana liczba |
+| Dodawanie ze strategią | strategia (6 sposobów rachunku pamięciowego), ile podpowiedzi, zakres liczb |
 | Uzupełnianie do pełnej liczby | do ilu uzupełniamy (10, 20, 100, najbliższa dziesiątka, własna liczba), postać działania, która liczba zakryta |
 | Porównywanie liczb | co porównujemy (liczby, działania), które działania, największa liczba, ile zadań ze znakiem „=” |
 | Poprzednik i następnik | zakres liczb, o ile mniej i więcej, co uzupełnia uczeń |
@@ -32,6 +33,7 @@ npm run check    # weryfikacja poprawności generatorów (wymaga działającego 
 | Oś liczbowa | ile podziałek, co ile, największa liczba, ile liczb zakryć, czy oś zaczyna się od zera |
 | Zegar — godziny | dokładność (godziny, pół, kwadranse, 5 minut, minuty), odczyt albo rysowanie wskazówek, zapis 12/24-godzinny, podziałka minutowa |
 | Pieniądze — ile to razem? | czym płacimy (złote, grosze, jedno i drugie), banknoty, ile monet, największa kwota |
+| Kolorowanka według wyniku | gotowy wzór albo własny obrazek, szerokość siatki, liczba kolorów, działania, największy wynik |
 | Krzyżówki matematyczne | ile działań, które działania (+ − × :), największa liczba, co zakrywać (liczby, wyniki, znaki), ile kratek zakryć |
 
 **Krzyżówka matematyczna** to działania `a ⚬ b = c` rozłożone poziomo i pionowo
@@ -49,6 +51,25 @@ działania (`24 + ___ = 37`); tryb „losowo” miesza jedno z drugim. Przy mno�
 czynnik nie zostanie zakryty, jeśli inny czynnik jest zerem — takie zadanie nie
 miałoby jednego rozwiązania.
 
+**Dodawanie ze strategią** to sposoby liczenia w pamięci rozpisane na kroki:
+dopełnienie do dziesiątki (`8 + 5 = 8 + 2 + 3 = 10 + 3`), podwojenia i prawie
+podwojenia, pary do 10 przy trzech liczbach, rozbicie na dziesiątki i jedności,
+zaokrąglenie z poprawką (`56 + 29 = 56 + 30 − 1`) oraz przerzucanie jedności
+(`64 + 52 = 66 + 50`). Suwak „ile podpowiedzi" pokazuje ten sam łańcuch w trzech
+stopniach: wszystkie kroki, jeden krok pośredni albo samo działanie — z trzech
+bloków składa się wtedy karta „uczymy się → ćwiczymy → liczymy w pamięci".
+Każdy krok łańcucha ma tę samą wartość, zmienia się tylko zapis.
+
+**Kolorowanka według wyniku** ukrywa obrazek w kratkach: każda kratka ma
+działanie, a legenda mówi, którym kolorem pokolorować dany wynik. Obrazek
+bierze się z gotowego wzoru (serce, choinka, rybka, kwiatek, dom, żaglówka,
+motyl, kotek) albo z własnego zdjęcia — plik JPG/PNG zamieniany jest na siatkę
+kratek. Kolor kratki to kolor przeważający w jej fragmencie obrazka, a nie
+średnia, bo uśrednianie robi wokół kształtów szarą obwódkę, która wypiera
+z palety prawdziwe kolory. Zostaje tyle kolorów, ile wybierzesz — resztę
+przyciągamy do najbliższego z nich. Arkusz odpowiedzi pokazuje pokolorowany
+obrazek.
+
 **Zegar** rysowany jest jako SVG: tarcza z godzinami, opcjonalną podziałką
 minutową i wskazówkami. W trybie „odczytaj godzinę” wskazówki są narysowane, a
 uczeń wpisuje godzinę pod tarczą; w trybie „narysuj wskazówki” jest odwrotnie —
@@ -64,8 +85,8 @@ się do najdłuższej liczby, żeby opisy się nie zlewały. **Ciągi liczbowe**
 **oś** nigdy nie zakrywają pierwszej liczby, a w ciągu zostają co najmniej dwie
 widoczne liczby — inaczej kroku nie dałoby się odczytać.
 
-Wspólne ustawienia arkusza: tytuł, liczba kolumn, wielkość czcionki, odstępy
-między zadaniami, liczba zestawów (każdy to osobna strona z innymi zadaniami),
+Wspólne ustawienia arkusza: tytuł, wielkość czcionki, odstępy między zadaniami,
+liczba zestawów (każdy to osobna strona z innymi zadaniami),
 numeracja zadań, miejsce na imię i datę, opcjonalny arkusz odpowiedzi
 (drukowany na osobnej stronie) oraz ziarno losowania — ten sam numer odtwarza
 dokładnie ten sam arkusz.
@@ -73,11 +94,17 @@ dokładnie ten sam arkusz.
 ## Bloki zadań
 
 Jeden arkusz może zawierać kilka bloków tego samego typu zadań, każdy z własną
-konfiguracją, własną liczbą zadań i własnym nagłówkiem — na przykład 20
-uzupełnień do 10, a pod spodem 20 uzupełnień do najbliższej dziesiątki, albo
-osiem zegarów do odczytania i osiem do narysowania wskazówek. „Dodaj blok
-zadań" powiela ostatni blok, bo zwykle zmienia się w nim tylko jedno
+konfiguracją, własną liczbą zadań, własną liczbą kolumn i własnym nagłówkiem —
+na przykład 20 uzupełnień do 10, a pod spodem 20 uzupełnień do najbliższej
+dziesiątki, albo osiem zegarów do odczytania i osiem do narysowania wskazówek.
+„Dodaj blok zadań" powiela ostatni blok, bo zwykle zmienia się w nim tylko jedno
 ustawienie; strzałki zmieniają kolejność bloków.
+
+Blok może zaczynać się od ramki z **wyjaśnieniem i przykładami**: regułą w jednym
+zdaniu i rozwiązanymi przykładami w tym samym zapisie, co zadania pod spodem.
+Reguła jest przypisana do typu zadań (a przy strategiach — do konkretnej
+strategii), więc wystarczy zaznaczyć opcję w bloku. Typy bez wyjaśnienia po
+prostu tej opcji nie pokazują.
 
 Numeracja biegnie przez całą stronę, a nie od nowa w każdym bloku. Szerokość
 pola na odpowiedź liczona jest raz dla całej strony, więc pola we wszystkich
@@ -98,10 +125,13 @@ dzięki temu nie zdradza odpowiedzi.
    `digitsList`) — `ConfigForm` renderuje go automatycznie. Pole z `showIf`
    pokazuje się tylko wtedy, gdy warunek na konfiguracji jest spełniony
    (tak działa np. przełączanie trybu w mnożeniu w pamięci).
-3. `generate(config, count, rnd)` zwraca listę zadań: `inline` (jedna linia),
+3. Opcjonalne `explain(config)` zwraca regułę do ramki „wyjaśnienie i przykłady”
+   — same przykłady generator wytwarza tak samo jak zwykłe zadania, tylko
+   drukowane są z odpowiedziami.
+4. `generate(config, count, rnd)` zwraca listę zadań: `inline` (jedna linia),
    `column` (słupek) lub `crossword` (krzyżówka). Losowość bierz wyłącznie
    z `rnd`, żeby ten sam arkusz dało się odtworzyć.
-4. Dopisz generator do tablicy w `src/generators/index.ts`.
+5. Dopisz generator do tablicy w `src/generators/index.ts`.
 
 W zadaniu `inline` pole `blankIndex` wskazuje zakrytą liczbę (`-1` to wynik),
 `result` to wartość działania, a `answer` to liczba, którą wpisuje uczeń.
@@ -112,7 +142,8 @@ każda kratka to liczba, znak działania albo „=”, a liczby i znaki niosą f
 `hidden`.
 
 Wariantów zadań jest więcej niż trzy: `inline`, `column`, `crossword`,
-`compare`, `sequence`, `neighbor`, `mark`, `clock`, `money` i `numberline`.
+`compare`, `sequence`, `neighbor`, `mark`, `clock`, `money`, `numberline`,
+`steps` (zapis krokowy) i `pixel` (kolorowanka).
 Jeśli nowy typ nie mieści się w żadnym z nich, dodaj wariant do `Problem`
 w `src/types.ts`, jego komponent w `src/components/Worksheet.tsx` i atrybuty
 `data-*` w `problemData` — z nich korzystają skrypty sprawdzające wydruk.
@@ -126,10 +157,15 @@ src/
   types.ts                 wspólne typy (zadania, pola konfiguracji, GeneratorDef)
   rng.ts                   deterministyczny generator liczb losowych
   generators/
+    additionStrategies.ts  rachunek pamięciowy rozpisany na kroki
     arithmetic.ts          dobór liczb: limity, przeniesienia, pożyczki, dzielenie, niewiadoma
+    coloring.ts            obrazek w kratkach i działania pod legendę
     crossword.ts           układanie i zakrywanie splecionych krzyżówek
     helpers.ts             funkcje pomocnicze (cyfry, przeniesienia, losowanie, odczyt konfiguracji)
     index.ts               rejestr typów zadań
+  data/
+    pixelArt.ts            paleta kolorów i gotowe wzory kolorowanki
+    imageToPixels.ts       zamiana wczytanego obrazka na siatkę kratek
   components/
     ConfigForm.tsx         formularz budowany z opisu pól, blok po bloku
     Worksheet.tsx          arkusz (bloki zadań) + arkusz odpowiedzi

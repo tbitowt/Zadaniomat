@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import type { Config, Field, FontSize, GeneratorDef, Section, SheetOptions, Spacing } from '../types';
 import { digitsList, num } from '../generators/helpers';
+import type { Picture } from '../data/imageToPixels';
+import { pictureFromSource, readFile } from '../data/imageToPixels';
+import { PALETTE } from '../data/pixelArt';
 
 interface Props {
   def: GeneratorDef;
@@ -75,6 +79,10 @@ function FieldRow({ field, config, onConfig }: { field: Field; config: Config; o
     );
   }
 
+  if (field.kind === 'image') {
+    return <ImageField field={field} config={config} onConfig={onConfig} />;
+  }
+
   // digitsList — jedno pole na każdą liczbę w działaniu
   const count = num(config, field.countKey, 2);
   const values = digitsList(config, field.key, count);
@@ -99,6 +107,76 @@ function FieldRow({ field, config, onConfig }: { field: Field; config: Config; o
           </span>
         ))}
       </div>
+      {field.help && <span className="field-help">{field.help}</span>}
+    </div>
+  );
+}
+
+
+/**
+ * Obrazek zamieniany na kratki: plik z dysku trafia do konfiguracji jako siatka
+ * znaków palety. Oryginał zostaje przy zadaniu, więc po zmianie szerokości
+ * siatki albo liczby kolorów wystarczy jedno kliknięcie, żeby go przeliczyć.
+ */
+function ImageField({
+  field,
+  config,
+  onConfig,
+}: {
+  field: Extract<Field, { kind: 'image' }>;
+  config: Config;
+  onConfig: (c: Config) => void;
+}) {
+  const picture = (config[field.key] ?? null) as Picture | null;
+  const width = num(config, field.widthKey, 12);
+  const colors = num(config, field.colorsKey, 4);
+  const [error, setError] = useState<string | null>(null);
+
+  const build = async (src: string, name: string) => {
+    try {
+      const next = await pictureFromSource(src, name, width, field.maxHeight, colors);
+      onConfig({ ...config, [field.key]: next });
+      setError(null);
+    } catch {
+      setError('Nie udało się wczytać obrazka — spróbuj innego pliku.');
+    }
+  };
+
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      await build(await readFile(file), file.name);
+    } catch {
+      setError('Nie udało się odczytać pliku.');
+    }
+  };
+
+  const stale = picture !== null && (picture.width !== width || picture.colors !== colors);
+
+  return (
+    <div className="field">
+      <span className="field-label">{field.label}</span>
+      <input type="file" accept="image/*" className="file-input" onChange={(e) => void pick(e.target.files?.[0])} />
+      {picture && (
+        <div className="picture-preview">
+          <div className="picture-grid" style={{ ['--px' as string]: picture.width }}>
+            {picture.rows.flatMap((row, y) =>
+              [...row].map((ch, x) => (
+                <span key={`${y}-${x}`} style={{ background: PALETTE[ch]?.css ?? '#ffffff' }} />
+              )),
+            )}
+          </div>
+          <span className="field-help">
+            {picture.name} — {picture.width} × {picture.height} kratek, {picture.colors} kolorów
+          </span>
+        </div>
+      )}
+      {stale && (
+        <button type="button" className="add-block" onClick={() => void build(picture.src, picture.name)}>
+          Przelicz na {width} kratek i {colors} kolorów
+        </button>
+      )}
+      {error && <span className="field-help field-error">{error}</span>}
       {field.help && <span className="field-help">{field.help}</span>}
     </div>
   );
@@ -166,6 +244,38 @@ function SectionForm({
           onChange={(e) => onSection({ ...section, count: clamp(Number(e.target.value) || 1, 1, 200) })}
         />
       </label>
+      <label className="field">
+        <span className="field-label">Kolumny</span>
+        <input
+          type="number"
+          min={1}
+          max={6}
+          value={section.columns}
+          onChange={(e) => onSection({ ...section, columns: clamp(Number(e.target.value) || 1, 1, 6) })}
+        />
+      </label>
+      {def.explain && (
+        <label className="field field-inline">
+          <input
+            type="checkbox"
+            checked={section.intro}
+            onChange={(e) => onSection({ ...section, intro: e.target.checked })}
+          />
+          <span className="field-label">Zacznij od wyjaśnienia i przykładów</span>
+        </label>
+      )}
+      {def.explain && section.intro && (
+        <label className="field">
+          <span className="field-label">Ile przykładów</span>
+          <input
+            type="number"
+            min={1}
+            max={6}
+            value={section.introCount}
+            onChange={(e) => onSection({ ...section, introCount: clamp(Number(e.target.value) || 1, 1, 6) })}
+          />
+        </label>
+      )}
       {fields.map((f) => (
         <FieldRow
           key={f.key}
@@ -187,7 +297,17 @@ export function ConfigForm({ def, sections, onSections, sheet, onSheet, seed, on
   /** Nowy blok powiela ostatni — zwykle zmienia się w nim tylko jedno ustawienie. */
   const add = () => {
     const last = sections[sections.length - 1];
-    onSections([...sections, { config: { ...last.config }, count: last.count, heading: '' }]);
+    onSections([
+      ...sections,
+      {
+        config: { ...last.config },
+        count: last.count,
+        columns: last.columns,
+        heading: '',
+        intro: false,
+        introCount: last.introCount,
+      },
+    ]);
   };
 
   const remove = (i: number) => onSections(sections.filter((_, k) => k !== i));
@@ -230,16 +350,6 @@ export function ConfigForm({ def, sections, onSections, sheet, onSheet, seed, on
         <label className="field">
           <span className="field-label">Tytuł na wydruku</span>
           <input type="text" value={sheet.title} onChange={(e) => onSheet({ ...sheet, title: e.target.value })} />
-        </label>
-        <label className="field">
-          <span className="field-label">Kolumny</span>
-          <input
-            type="number"
-            min={1}
-            max={6}
-            value={sheet.columns}
-            onChange={(e) => onSheet({ ...sheet, columns: clamp(Number(e.target.value) || 1, 1, 6) })}
-          />
         </label>
         <label className="field">
           <span className="field-label">Wielkość czcionki</span>
