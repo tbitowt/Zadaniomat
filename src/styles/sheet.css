@@ -1,0 +1,508 @@
+/* Arkusz: na ekranie podgląd A4 1:1, na wydruku dokładnie ta sama kompozycja. */
+
+.print-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  align-items: center;
+}
+
+.sheet {
+  --problem-size: 13pt;
+  --row-gap: 7mm;
+  --col-gap: 6mm;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 15mm;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 2px 14px rgba(20, 30, 50, 0.14);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.sheet.size-small {
+  --problem-size: 11pt;
+}
+
+.sheet.size-large {
+  --problem-size: 16pt;
+}
+
+.sheet.gap-tight {
+  --row-gap: 4mm;
+  --col-gap: 4mm;
+}
+
+.sheet.gap-loose {
+  --row-gap: 12mm;
+  --col-gap: 8mm;
+}
+
+.sheet-header h1 {
+  margin: 0 0 8mm;
+  font-size: 16pt;
+  font-weight: 600;
+  border-bottom: 1.5pt solid #000;
+  padding-bottom: 3mm;
+}
+
+.sheet-meta {
+  display: flex;
+  gap: 8mm;
+  margin: -5mm 0 8mm;
+  font-size: 10pt;
+  color: #333;
+}
+
+.sheet-meta span {
+  flex: 1;
+  border-bottom: 0.75pt dotted #666;
+  padding-bottom: 5mm;
+}
+
+.sheet-meta .sheet-meta-date {
+  flex: 0 0 45mm;
+}
+
+.problems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: var(--row-gap) var(--col-gap);
+}
+
+.problem {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-size: var(--problem-size);
+  break-inside: avoid;
+}
+
+.problem-column {
+  align-items: flex-start;
+  gap: 3mm;
+}
+
+.problem-no {
+  color: #444;
+  font-size: 10pt;
+  min-width: 6mm;
+}
+
+.problems-plain .problem-no {
+  display: none;
+}
+
+/* --- bloki zadań: kilka konfiguracji na jednym arkuszu --- */
+
+.block + .block {
+  margin-top: calc(var(--row-gap) * 1.6);
+}
+
+/* nagłówek zostaje przy swoim blokiem, nie na końcu strony */
+.block-heading {
+  margin: 0 0 4mm;
+  padding-bottom: 1.5mm;
+  border-bottom: 0.75pt solid #999;
+  font-size: 12pt;
+  font-weight: 600;
+  break-after: avoid;
+}
+
+/* --- działania w jednej linii --- */
+
+.inline-problem {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.inline-problem .op {
+  margin: 0 0.35em;
+}
+
+/*
+ * Miejsce na wpisanie liczby — ta sama ramka niezależnie od tego, czy szukany
+ * jest wynik, czy jeden ze składników. Szerokość (--blank-w) ustala arkusz,
+ * więc wszystkie pola są równe i nie zdradzają, ile cyfr ma odpowiedź.
+ */
+.blank {
+  display: inline-block;
+  width: calc(var(--blank-w, 3) * 0.62em + 0.7em);
+  height: 1.25em;
+  border: 0.75pt solid #999;
+  border-radius: 1pt;
+  vertical-align: -0.2em;
+}
+
+.answer {
+  font-weight: 600;
+}
+
+/* --- działania pisemne (słupek) --- */
+
+.column-problem {
+  display: grid;
+  grid-template-columns: 1.15em repeat(var(--cols), 1.15em);
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-size: calc(var(--problem-size) + 1pt);
+  line-height: 1.35;
+}
+
+.column-problem .cell {
+  text-align: center;
+}
+
+.column-problem .sign {
+  text-align: left;
+}
+
+.column-rule {
+  grid-column: 1 / -1;
+  border-top: 1.5pt solid #000;
+  margin: 1mm 0 1.5mm;
+}
+
+.column-problem .box {
+  border: 0.75pt solid #b0b0b0;
+  height: 1.35em;
+  margin: 0 0.5pt;
+}
+
+/* pasek na przeniesienia / pożyczki nad działaniem */
+.column-problem .carry-box {
+  height: 0.85em;
+  border: 0.5pt dashed #c4c4c4;
+  margin: 0 0.5pt 0.5mm;
+}
+
+/* --- krzyżówki matematyczne --- */
+
+.problem-crossword {
+  align-items: flex-start;
+  gap: 3mm;
+}
+
+/* kratki krzyżówki; wielkość idzie za ustawieniem czcionki arkusza */
+.crossword {
+  --cw-cell: calc(var(--problem-size) * 1.7);
+  display: grid;
+  grid-template-columns: repeat(var(--cw), var(--cw-cell));
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-size: calc(var(--problem-size) - 2.5pt);
+}
+
+.crossword .cw-gap {
+  height: var(--cw-cell);
+}
+
+.crossword .cw-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--cw-cell);
+  border: 0.75pt solid #999;
+  margin: -0.375pt 0 0 -0.375pt;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+/* znaki działań i „=” są tłem dla liczb, więc rysujemy je lżej */
+.crossword .cw-op,
+.crossword .cw-eq {
+  color: #444;
+  background: #f2f2f2;
+}
+
+.crossword .answer {
+  font-weight: 600;
+}
+
+/* --- porównywanie, ciągi, sąsiedzi --- */
+
+/* kratka na znak <, > lub = jest kwadratowa — nie zdradza, ile znaków wpisać */
+.blank-sign {
+  width: 1.25em;
+  margin: 0 0.35em;
+}
+
+.cmp-sign {
+  margin: 0 0.35em;
+}
+
+.blank-narrow {
+  width: 1.6em;
+}
+
+.seq-sep {
+  margin-right: 0.35em;
+}
+
+.inline-problem .arrow {
+  color: #444;
+}
+
+/* --- liczby do otoczenia kółkiem --- */
+
+.problem-mark .inline-problem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15em;
+}
+
+.mark-label {
+  margin-right: 0.4em;
+  font-style: italic;
+  color: #333;
+}
+
+.mark-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2em;
+  height: 2em;
+  padding: 0 0.15em;
+  border: 0.75pt solid transparent;
+  border-radius: 50%;
+  font-variant-numeric: tabular-nums;
+}
+
+.mark-num.marked {
+  border-color: #000;
+  font-weight: 600;
+}
+
+/* --- zegar --- */
+
+.problem-clock {
+  align-items: center;
+}
+
+.clock-problem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5mm;
+}
+
+.clock {
+  width: calc(var(--problem-size) * 6);
+  height: calc(var(--problem-size) * 6);
+}
+
+.clock-face {
+  fill: #fff;
+  stroke: #333;
+  stroke-width: 1.6;
+}
+
+.clock-tick {
+  stroke: #666;
+  stroke-width: 0.8;
+}
+
+.clock-tick-hour {
+  stroke: #222;
+  stroke-width: 1.8;
+}
+
+.clock-num {
+  fill: #000;
+  font-size: 11px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.clock-hand {
+  stroke: #000;
+  stroke-linecap: round;
+}
+
+.clock-hand-hour {
+  stroke-width: 3.4;
+}
+
+.clock-hand-minute {
+  stroke-width: 2;
+}
+
+.clock-pin {
+  fill: #000;
+}
+
+.blank-time {
+  width: calc(var(--problem-size) * 3);
+}
+
+.clock-label {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- pieniądze --- */
+
+.problem-money {
+  align-items: center;
+}
+
+.money-problem {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1mm;
+}
+
+.money-items {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1mm;
+}
+
+.coin {
+  width: calc(var(--problem-size) * 2.6);
+  height: calc(var(--problem-size) * 2.6);
+}
+
+.note {
+  width: calc(var(--problem-size) * 3.6);
+  height: calc(var(--problem-size) * 2.04);
+}
+
+.coin-body {
+  fill: #ededed;
+  stroke: #333;
+  stroke-width: 1.2;
+}
+
+.coin-inner {
+  fill: none;
+  stroke: #999;
+  stroke-width: 0.6;
+}
+
+.note-body {
+  fill: #fafafa;
+  stroke: #333;
+  stroke-width: 1.2;
+}
+
+.note-inner {
+  fill: none;
+  stroke: #999;
+  stroke-width: 0.6;
+}
+
+.cash-value {
+  fill: #000;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "Segoe UI", Arial, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.note .cash-value {
+  font-size: 13px;
+}
+
+.cash-unit {
+  fill: #333;
+  font-size: 7.5px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.blank-wide {
+  width: calc(var(--problem-size) * 4.5);
+}
+
+/* --- oś liczbowa --- */
+
+.problem-numberline {
+  align-items: center;
+}
+
+.numberline-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.numberline {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.nl-axis,
+.nl-tick {
+  stroke: #000;
+  stroke-width: 1.1;
+}
+
+.nl-arrow {
+  fill: #000;
+}
+
+.nl-label {
+  fill: #000;
+  font-size: 11px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.nl-answer {
+  font-weight: 600;
+}
+
+.nl-blank {
+  fill: none;
+  stroke: #999;
+  stroke-width: 0.75;
+}
+
+/* --- wydruk --- */
+
+@page {
+  size: A4;
+  margin: 15mm;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .app-editor {
+    display: block;
+    padding: 0;
+  }
+
+  .panel {
+    display: none;
+  }
+
+  .preview,
+  .print-area {
+    display: block;
+    gap: 0;
+  }
+
+  .sheet {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .sheet + .sheet {
+    break-before: page;
+  }
+}
