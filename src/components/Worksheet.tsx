@@ -466,7 +466,13 @@ function Pixel({ problem, showAnswer }: { problem: PixelProblem; showAnswer: boo
           </span>
         ))}
       </div>
-      <div className="pixel-grid" style={{ ['--px' as string]: problem.width }}>
+      <div
+        className="pixel-grid"
+        style={{
+          ['--px' as string]: problem.width,
+          ['--py' as string]: Math.ceil(problem.cells.length / problem.width),
+        }}
+      >
         {problem.cells.map((cell, i) => (
           <span
             className="pixel-cell"

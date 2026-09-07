@@ -16,14 +16,16 @@ export const PALETTE: Record<string, PaintColor> = {
   y: { name: 'żółty', css: '#f0c419' },
   z: { name: 'zielony', css: '#2f9e44' },
   n: { name: 'niebieski', css: '#1c7ed6' },
+  j: { name: 'błękitny', css: '#74c0fc' },
+  f: { name: 'fioletowy', css: '#7950f2' },
   r: { name: 'różowy', css: '#e64980' },
   b: { name: 'brązowy', css: '#8b5a2b' },
   s: { name: 'szary', css: '#868e96' },
   k: { name: 'czarny', css: '#212529' },
 };
 
-/** Znaki kolorów, na które wolno zamienić wczytany obrazek (bez bieli i czerni). */
-export const IMAGE_COLORS = ['c', 'p', 'y', 'z', 'n', 'r', 'b', 's'];
+/** Znaki kolorów, na które wolno zamienić wczytany obrazek (biel i czerń dochodzą osobno). */
+export const IMAGE_COLORS = ['c', 'p', 'y', 'z', 'n', 'j', 'f', 'r', 'b', 's'];
 
 export interface PixelPattern {
   id: string;

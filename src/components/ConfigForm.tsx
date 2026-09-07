@@ -151,7 +151,7 @@ function ImageField({
     }
   };
 
-  const stale = picture !== null && (picture.width !== width || picture.colors !== colors);
+  const stale = picture !== null && (picture.asked !== width || picture.colors !== colors);
 
   return (
     <div className="field">
