@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "deploy": "node scripts/publish.mjs",
     "check": "node scripts/check-answers.mjs && node scripts/check-constraints.mjs"
   },
   "dependencies": {
