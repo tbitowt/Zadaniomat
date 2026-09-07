@@ -27,6 +27,9 @@ export const mentalMultiplication: GeneratorDef = {
   title: 'Mnożenie w pamięci',
   description: 'Tabliczka mnożenia albo iloczyny liczb o zadanej liczbie cyfr.',
   sample: '7 × 8 = ____',
+  subject: 'matematyka',
+  grades: [2, 3],
+  category: 'rachunek',
   sheetDefaults: { count: 30, columns: 3 },
   fields: [
     { kind: 'select', key: 'mode', label: 'Skąd brać czynniki', options: modeOptions },

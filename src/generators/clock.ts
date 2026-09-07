@@ -41,6 +41,9 @@ export const clock: GeneratorDef = {
   title: 'Zegar — godziny',
   description: 'Odczytywanie godziny z tarczy albo rysowanie wskazówek.',
   sample: 'tarcza → ____',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'praktyka',
   sheetDefaults: { count: 16, columns: 4 },
   fields: [
     { kind: 'select', key: 'granularity', label: 'Dokładność', options: granularityOptions },

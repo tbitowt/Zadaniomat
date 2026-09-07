@@ -31,6 +31,9 @@ export const sequence: GeneratorDef = {
   title: 'Ciągi liczbowe',
   description: 'Uczeń odczytuje krok i dopisuje brakujące liczby.',
   sample: '2, 4, 6, ___, ___',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'liczby',
   sheetDefaults: { count: 16, columns: 2 },
   fields: [
     { kind: 'number', key: 'length', label: 'Ile liczb w ciągu', min: 4, max: 12 },

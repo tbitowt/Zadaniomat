@@ -205,6 +205,9 @@ export const additionStrategies: GeneratorDef = {
   title: 'Dodawanie ze strategią',
   description: 'Rachunek pamięciowy rozpisany na kroki — z wyjaśnieniem i przykładami.',
   sample: '8 + 5 = 8 + ___ + ___ = 10 + ___',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'rachunek',
   sheetDefaults: { count: 10, columns: 1 },
   fields: [
     { kind: 'select', key: 'strategy', label: 'Strategia', options: strategyOptions },

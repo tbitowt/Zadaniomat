@@ -8,6 +8,9 @@ export const writtenSubtraction: GeneratorDef = {
   title: 'Odejmowanie pisemne',
   description: 'Odjemna nad odjemnikiem, znak −, kreska i kratki na wynik.',
   sample: 'słupek: 502 − 178',
+  subject: 'matematyka',
+  grades: [2, 3],
+  category: 'pisemne',
   sheetDefaults: { count: 12, columns: 4 },
   fields: [
     { kind: 'number', key: 'digitsA', label: 'Ilość cyfr odjemnej (górna liczba)', min: 1, max: 6 },

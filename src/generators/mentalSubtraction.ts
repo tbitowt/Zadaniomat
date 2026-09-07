@@ -8,6 +8,9 @@ export const mentalSubtraction: GeneratorDef = {
   title: 'Odejmowanie w pamięci',
   description: 'Działania w jednej linii, wynik nigdy nie jest ujemny.',
   sample: '84 − 27 = ____',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'rachunek',
   sheetDefaults: { count: 30, columns: 3 },
   fields: [
     { kind: 'number', key: 'termCount', label: 'Ile liczb w działaniu', min: 2, max: 4 },

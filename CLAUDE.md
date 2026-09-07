@@ -42,4 +42,8 @@ npm run check    # weryfikacja poprawności generatorów
 - **Nieudany build nie psuje strony, tylko ją zamraża.** Zadanie `deploy`
   zostaje pominięte i na żywo zostaje poprzednia wersja. Po pushu na `main`
   warto sprawdzić zakładkę Actions.
+- **Nowy generator to nie tylko wpis w `src/generators/index.ts`** — definicja
+  musi też podać `subject`, `grades` i `category`, bo po nich filtruje
+  przeglądarka (`src/catalog.ts`, `src/components/Picker.tsx`). Nowy dział
+  dopisuje się do `CategoryId` w `src/types.ts` i do listy `categories`.
 - **`temp/`** to lokalne notatki robocze, poza kontrolą wersji.

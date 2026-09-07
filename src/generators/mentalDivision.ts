@@ -19,6 +19,9 @@ export const mentalDivision: GeneratorDef = {
   title: 'Dzielenie w pamięci',
   description: 'Dzielenie bez reszty albo z resztą, w jednej linii.',
   sample: '18 : 3 = ____',
+  subject: 'matematyka',
+  grades: [2, 3],
+  category: 'rachunek',
   sheetDefaults: { count: 30, columns: 3 },
   fields: [
     { kind: 'number', key: 'divisorFrom', label: 'Dzielnik od', min: 1, max: 20 },

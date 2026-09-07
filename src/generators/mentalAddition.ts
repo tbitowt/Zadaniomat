@@ -8,6 +8,9 @@ export const mentalAddition: GeneratorDef = {
   title: 'Dodawanie w pamięci',
   description: 'Działania w jednej linii z miejscem na wynik.',
   sample: '24 + 13 = ____',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'rachunek',
   sheetDefaults: { count: 30, columns: 3 },
   fields: [
     { kind: 'number', key: 'termCount', label: 'Ile liczb do dodania', min: 2, max: 5 },

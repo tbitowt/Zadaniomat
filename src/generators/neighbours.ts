@@ -23,6 +23,9 @@ export const neighbours: GeneratorDef = {
   title: 'Poprzednik i następnik',
   description: 'Liczba o jeden (albo o dziesięć) mniejsza i większa.',
   sample: '___ ← 47 → ___',
+  subject: 'matematyka',
+  grades: [1, 2],
+  category: 'liczby',
   sheetDefaults: { count: 24, columns: 3 },
   fields: [
     { kind: 'number', key: 'minValue', label: 'Liczby od', min: 0, max: 1000000, step: 10 },

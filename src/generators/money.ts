@@ -36,6 +36,9 @@ export const money: GeneratorDef = {
   title: 'Pieniądze — ile to razem?',
   description: 'Sumowanie monet i banknotów.',
   sample: '2 zł + 50 gr + 20 gr = ____',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'praktyka',
   sheetDefaults: { count: 10, columns: 2 },
   fields: [
     { kind: 'select', key: 'unit', label: 'Czym płacimy', options: unitOptions },

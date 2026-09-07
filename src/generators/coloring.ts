@@ -78,6 +78,9 @@ export const coloring: GeneratorDef = {
   title: 'Kolorowanka według wyniku',
   description: 'Obrazek ukryty w kratkach: policz działanie i pokoloruj według legendy.',
   sample: 'policz i pokoloruj',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'lamiglowki',
   sheetDefaults: { count: 1, columns: 1 },
   fields: [
     { kind: 'select', key: 'source', label: 'Skąd obrazek', options: sourceOptions },

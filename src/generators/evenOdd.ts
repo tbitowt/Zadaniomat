@@ -15,6 +15,9 @@ export const evenOdd: GeneratorDef = {
   title: 'Liczby parzyste i nieparzyste',
   description: 'Uczeń otacza kółkiem liczby pasujące do polecenia.',
   sample: 'parzyste: 3 8 5 12',
+  subject: 'matematyka',
+  grades: [1, 2],
+  category: 'liczby',
   sheetDefaults: { count: 16, columns: 2 },
   fields: [
     { kind: 'select', key: 'mode', label: 'Czego szukamy', options: modeOptions },

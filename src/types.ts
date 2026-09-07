@@ -294,12 +294,25 @@ export interface SheetBlock {
   carryRow: boolean;
 }
 
+/** Przedmiot, do którego należy typ zadań — na razie jest tylko jeden. */
+export type Subject = 'matematyka';
+
+/** Klasa edukacji wczesnoszkolnej, dla której zadanie ma sens. */
+export type Grade = 1 | 2 | 3;
+
+/** Dział, w którym zadanie stoi w przeglądarce. Kolejność i nazwy: `src/catalog.ts`. */
+export type CategoryId = 'rachunek' | 'pisemne' | 'liczby' | 'praktyka' | 'lamiglowki';
+
 export interface GeneratorDef {
   id: string;
   title: string;
   description: string;
   /** Krótki wzór pokazywany na kafelku wyboru. */
   sample: string;
+  subject: Subject;
+  /** Klasy, w których zadanie zwykle się pojawia — po tym filtruje przeglądarka. */
+  grades: Grade[];
+  category: CategoryId;
   fields: Field[];
   defaults: Config;
   /** Domyślna liczba zadań i kolumn dla tego typu. */

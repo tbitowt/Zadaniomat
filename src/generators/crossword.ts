@@ -317,6 +317,9 @@ export const crossword: GeneratorDef = {
   title: 'Krzyżówki matematyczne',
   description: 'Splecione działania — poziome i pionowe przecinają się na wspólnych liczbach.',
   sample: '3 · □ = 12 na krzyż',
+  subject: 'matematyka',
+  grades: [2, 3],
+  category: 'lamiglowki',
   sheetDefaults: { count: 2, columns: 1 },
   fields: [
     { kind: 'number', key: 'equations', label: 'Ile działań w krzyżówce', min: 3, max: 20 },

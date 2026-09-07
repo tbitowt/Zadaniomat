@@ -70,6 +70,9 @@ export const comparison: GeneratorDef = {
   title: 'Porównywanie liczb',
   description: 'Uczeń wstawia znak <, > albo = między dwie strony.',
   sample: '24 + 3 ⬜ 30',
+  subject: 'matematyka',
+  grades: [1, 2, 3],
+  category: 'liczby',
   sheetDefaults: { count: 24, columns: 3 },
   fields: [
     { kind: 'select', key: 'sides', label: 'Co porównujemy', options: sidesOptions },

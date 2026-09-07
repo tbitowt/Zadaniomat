@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { emptyFilters } from './catalog';
+import type { Filters } from './catalog';
 import { ConfigForm } from './components/ConfigForm';
+import { Picker } from './components/Picker';
 import { Worksheet } from './components/Worksheet';
-import { generators, getGenerator } from './generators';
+import { getGenerator } from './generators';
 import { createRnd, randomSeed } from './rng';
 import type { GeneratorDef, Section, SheetBlock, SheetOptions } from './types';
 
@@ -53,6 +56,8 @@ export default function App() {
   const [sections, setSections] = useState<Section[]>([]);
   const [sheet, setSheet] = useState<SheetOptions>({ title: '', ...sheetBase });
   const [seed, setSeed] = useState(randomSeed);
+  // filtry przeglądarki żyją tutaj, żeby powrót z edytora wracał do tej samej listy
+  const [filters, setFilters] = useState<Filters>(emptyFilters);
 
   const def = activeId ? getGenerator(activeId) : undefined;
 
@@ -74,25 +79,7 @@ export default function App() {
   };
 
   if (!def) {
-    return (
-      <div className="app">
-        <header className="app-header">
-          <h1>Zadaniomat</h1>
-          <p>Wybierz rodzaj zadań, ustaw parametry i wydrukuj kartę pracy.</p>
-        </header>
-        <ul className="picker">
-          {generators.map((g) => (
-            <li key={g.id}>
-              <button type="button" className="card" onClick={() => open(g.id)}>
-                <span className="card-title">{g.title}</span>
-                <span className="card-desc">{g.description}</span>
-                <span className="card-sample">{g.sample}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
+    return <Picker filters={filters} onFilters={setFilters} onOpen={open} />;
   }
 
   const badBlock = firstBadBlock(def, sections);

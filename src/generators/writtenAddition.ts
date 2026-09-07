@@ -8,6 +8,9 @@ export const writtenAddition: GeneratorDef = {
   title: 'Dodawanie pisemne',
   description: 'Liczby zapisane w słupku, znak +, kreska i kratki na wynik.',
   sample: 'słupek: 348 + 176',
+  subject: 'matematyka',
+  grades: [2, 3],
+  category: 'pisemne',
   sheetDefaults: { count: 12, columns: 4 },
   fields: [
     { kind: 'number', key: 'termCount', label: 'Ile liczb do dodania', min: 2, max: 4 },

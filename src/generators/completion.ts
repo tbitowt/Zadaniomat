@@ -50,6 +50,9 @@ export const completion: GeneratorDef = {
   title: 'Uzupełnianie do pełnej liczby',
   description: 'Ile brakuje do 10, 20, 100 albo do najbliższej dziesiątki.',
   sample: '7 + ___ = 10',
+  subject: 'matematyka',
+  grades: [1, 2],
+  category: 'rachunek',
   sheetDefaults: { count: 20, columns: 4 },
   fields: [
     { kind: 'select', key: 'target', label: 'Do ilu uzupełniamy', options: targetOptions },

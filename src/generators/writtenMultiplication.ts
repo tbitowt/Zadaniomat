@@ -8,6 +8,9 @@ export const writtenMultiplication: GeneratorDef = {
   title: 'Mnożenie pisemne',
   description: 'Mnożna nad mnożnikiem, znak ×, iloczyny częściowe i kratki na wynik.',
   sample: 'słupek: 246 × 37',
+  subject: 'matematyka',
+  grades: [3],
+  category: 'pisemne',
   sheetDefaults: { count: 9, columns: 3 },
   fields: [
     { kind: 'number', key: 'digitsA', label: 'Ilość cyfr mnożnej (górna liczba)', min: 1, max: 6 },

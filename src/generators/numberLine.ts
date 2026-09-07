@@ -14,6 +14,9 @@ export const numberLine: GeneratorDef = {
   title: 'Oś liczbowa',
   description: 'Uczeń wpisuje liczby brakujące pod podziałkami osi.',
   sample: '0 — 1 — ⬜ — 3',
+  subject: 'matematyka',
+  grades: [1, 2],
+  category: 'liczby',
   sheetDefaults: { count: 8, columns: 1 },
   fields: [
     { kind: 'number', key: 'ticks', label: 'Ile podziałek', min: 4, max: 21 },
