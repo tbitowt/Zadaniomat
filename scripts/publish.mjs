@@ -100,7 +100,7 @@ wykonaj(`git switch ${PRODUKCYJNA}`, () => git('switch', PRODUKCYJNA));
 try {
   wykonaj('git merge --ff-only', () => git('merge', '--ff-only', ROBOCZA));
   wykonaj('git push', () => git('push', 'origin', PRODUKCYJNA));
-  ok('wypchnięto na produkcję');
+  if (!DRY_RUN) ok('wypchnięto na produkcję');
 } catch (e) {
   wykonaj('powrót na gałąź roboczą', () => git('switch', ROBOCZA));
   przerwij(e.message.split('\n')[0], 'Produkcja nie została zmieniona.');
@@ -111,7 +111,9 @@ try {
 // Gałąź robocza też ma być wysłana, żeby nie została tylko lokalnie.
 wykonaj(`git push origin ${ROBOCZA}`, () => git('push', 'origin', ROBOCZA));
 
-console.log(`\nGotowe. Wdrożenie trwa 1–2 minuty.`);
+console.log(DRY_RUN ? `
+Tryb próbny zakończony — nic nie zostało opublikowane.` : `
+Gotowe. Wdrożenie trwa 1–2 minuty.`);
 console.log(`  Postęp: ${AKCJE}`);
 console.log(`  Strona: ${ADRES}`);
 console.log(`\nPrzypomnienie: CI nie uruchamia \`npm run check\`. Jeśli zmieniałeś`);
