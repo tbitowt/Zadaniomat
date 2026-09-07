@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Robocze notatki i pliki tymczasowe (poza kontrola wersji)
+temp

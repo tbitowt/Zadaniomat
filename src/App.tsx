@@ -77,7 +77,7 @@ export default function App() {
     return (
       <div className="app">
         <header className="app-header">
-          <h1>Zadania matematyczne</h1>
+          <h1>Zadaniomat</h1>
           <p>Wybierz rodzaj zadań, ustaw parametry i wydrukuj kartę pracy.</p>
         </header>
         <ul className="picker">

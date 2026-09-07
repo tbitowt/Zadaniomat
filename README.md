@@ -1,4 +1,4 @@
-# Zadania matematyczne — generator kart pracy
+# Zadaniomat — generator kart pracy z matematyki
 
 Aplikacja webowa, która generuje gotowe do druku arkusze z zadaniami.
 Wydruk odbywa się przez przeglądarkę (Ctrl+P → „Zapisz jako PDF”); układ A4
