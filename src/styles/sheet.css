@@ -26,6 +26,8 @@
   color: #000;
   box-shadow: 0 2px 14px rgba(20, 30, 50, 0.14);
   font-family: "Segoe UI", Arial, sans-serif;
+  /* na wąskim ekranie cała kartka maleje, żeby zmieścić się w szerokości (Worksheet.tsx) */
+  zoom: var(--sheet-zoom, 1);
 }
 
 .sheet.size-small {
@@ -776,7 +778,8 @@
   padding: 1.5mm 3mm;
   background: #c0392b;
   color: #fff;
-  font-size: 9pt;
+  /* napis ma być czytelny także na pomniejszonej kartce, więc nie maleje razem z nią */
+  font-size: calc(9pt / var(--sheet-zoom, 1));
   font-weight: 600;
   border-bottom-left-radius: 2mm;
 }
@@ -814,6 +817,7 @@
     min-height: 0;
     padding: 0;
     box-shadow: none;
+    zoom: 1;
   }
 
   /* ostrzeżenie o przepełnieniu jest tylko dla podglądu */

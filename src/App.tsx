@@ -25,6 +25,9 @@ const variantSeed = (seed: number, i: number) => (seed + i * 7919) >>> 0;
 
 const defOf = (s: Section) => getGenerator(s.generatorId)!;
 
+/** Na wąskim ekranie edytor pokazuje naraz albo ustawienia, albo podgląd (app.css). */
+type View = 'config' | 'preview';
+
 /** Pierwszy blok, którego konfiguracja jest niewykonalna. */
 function firstBadBlock(sections: Section[]) {
   for (const [index, s] of sections.entries()) {
@@ -72,6 +75,9 @@ export default function App() {
   // gdzie był edytor przed wyjściem do przeglądarki i czy wracamy z nowym blokiem
   const editorScroll = useRef(0);
   const added = useRef(false);
+  // zakładka edytora na wąskim ekranie; każda pamięta, dokąd była przewinięta
+  const [view, setView] = useState<View>('config');
+  const viewScroll = useRef<Record<View, number>>({ config: 0, preview: 0 });
 
   // przeglądarka zaczyna się od góry; po powrocie edytor wraca tam, gdzie był,
   // a jeśli doszedł blok — pokazuje jego ustawienia
@@ -86,6 +92,16 @@ export default function App() {
       [...document.querySelectorAll('.block-config')].at(-1)?.scrollIntoView({ block: 'start' });
     }
   }, [adding]);
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, viewScroll.current[view]);
+  }, [view]);
+
+  const show = (next: View) => {
+    if (next === view) return;
+    viewScroll.current[view] = window.scrollY;
+    setView(next);
+  };
 
   const startAdding = () => {
     editorScroll.current = window.scrollY;
@@ -106,8 +122,12 @@ export default function App() {
       setAdding(false);
       return;
     }
+    // karta klikana nisko na liście zostawiałaby edytor przewinięty do połowy formularza
+    window.scrollTo(0, 0);
     setSections([newSection(g)]);
     editorScroll.current = 0;
+    viewScroll.current = { config: 0, preview: 0 };
+    setView('config');
     setSheet({ title: g.title, ...sheetBase });
     setSeed(randomSeed());
   };
@@ -135,7 +155,7 @@ export default function App() {
   const total = pages[0]?.reduce((a, b) => a + b.problems.length, 0) ?? 0;
 
   return (
-    <div className="app app-editor">
+    <div className={`app app-editor view-${view}`}>
       <aside className="panel">
         <button type="button" className="link-back" onClick={() => setSections([])}>
           ← Wszystkie rodzaje zadań
@@ -167,8 +187,34 @@ export default function App() {
         </div>
       </aside>
       <main className="preview">
+        {badBlock && <p className="preview-empty">Karty nie da się ułożyć — popraw ustawienia.</p>}
         <Worksheet pages={pages} sheet={sheet} />
       </main>
+      {/* na tablecie i telefonie zamiast przycisków pod formularzem — widoczny w obu zakładkach */}
+      <nav className="editor-bar" aria-label="Karta pracy">
+        <button
+          type="button"
+          className={`tab${view === 'config' ? ' tab-on' : ''}${badBlock ? ' tab-alert' : ''}`}
+          aria-pressed={view === 'config'}
+          onClick={() => show('config')}
+        >
+          Ustawienia
+        </button>
+        <button
+          type="button"
+          className={`tab${view === 'preview' ? ' tab-on' : ''}`}
+          aria-pressed={view === 'preview'}
+          onClick={() => show('preview')}
+        >
+          Podgląd
+        </button>
+        <button type="button" onClick={() => setSeed(randomSeed())}>
+          Losuj
+        </button>
+        <button type="button" className="primary" onClick={() => window.print()} disabled={!total}>
+          Drukuj
+        </button>
+      </nav>
     </div>
   );
 }

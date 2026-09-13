@@ -776,8 +776,14 @@ function useOverflow(ref: RefObject<HTMLDivElement | null>) {
         setOver(false);
         return;
       }
-      const limit = el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).paddingBottom);
-      setOver(last.getBoundingClientRect().bottom > limit - MM);
+      const box = el.getBoundingClientRect();
+      // ukryta kartka (zakładka ustawień na telefonie) nie ma wymiarów — zostaje poprzedni wynik
+      if (!box.height) return;
+      // na wąskim ekranie podgląd jest pomniejszony przez `zoom`: prostokąty są już
+      // przeskalowane, a padding i milimetr nie, więc skalujemy je tym samym stosunkiem
+      const scale = box.height / el.offsetHeight;
+      const limit = box.bottom - (parseFloat(getComputedStyle(el).paddingBottom) + MM) * scale;
+      setOver(last.getBoundingClientRect().bottom > limit);
     };
     check();
     // czcionki i SVG dochodzą po pierwszym renderze i potrafią jeszcze urosnąć
@@ -858,10 +864,37 @@ function Page({
   );
 }
 
+/** Szerokość kartki A4 w pikselach CSS. */
+const SHEET_WIDTH = 210 * MM;
+
+/**
+ * Skala, przy której kartka mieści się w szerokości podglądu — na tablecie
+ * i telefonie A4 w skali 1:1 wychodziłoby poza ekran. Nigdy nie powiększa;
+ * wydruk ignoruje skalę (sheet.css), więc zmienia się tylko podgląd.
+ */
+function useFitScale(ref: RefObject<HTMLDivElement | null>) {
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      // ukryty podgląd ma szerokość 0 — zostawiamy ostatnią skalę
+      if (el.clientWidth) setScale(Math.min(1, el.clientWidth / SHEET_WIDTH));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return scale;
+}
+
 export function Worksheet({ pages, sheet }: Props) {
   const label = (i: number) => (pages.length > 1 ? `${sheet.title} — zestaw ${i + 1}` : sheet.title);
+  const ref = useRef<HTMLDivElement>(null);
+  const scale = useFitScale(ref);
   return (
-    <div className="print-area">
+    <div ref={ref} className="print-area" style={{ ['--sheet-zoom' as string]: scale }}>
       {pages.map((blocks, i) => (
         <Page key={`s${i}`} title={label(i)} blocks={blocks} sheet={sheet} showAnswers={false} />
       ))}

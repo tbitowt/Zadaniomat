@@ -64,9 +64,12 @@ body {
   transition: border-color 0.15s, transform 0.15s;
 }
 
-.card:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
+/* na ekranie dotykowym „hover” zostaje po stuknięciu, więc karta tylko tam, gdzie jest mysz */
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
 }
 
 .card-title {
@@ -539,4 +542,200 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 24px;
+}
+
+.preview-empty {
+  margin: 40px 0 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* pasek zakładek i akcji edytora — tylko na wąskim ekranie */
+.editor-bar {
+  display: none;
+}
+
+/* --- tablet i telefon --- */
+
+/*
+ * Poniżej tej szerokości panel i kartka A4 nie mieszczą się obok siebie, więc
+ * edytor pokazuje naraz jedno z nich, a przełącza pasek przyklejony do dołu.
+ * Tylko `screen`: wydruk z telefonu też ma wąski „ekran”, a musi zawsze
+ * dostać kartę, niezależnie od otwartej zakładki.
+ */
+@media screen and (max-width: 899px) {
+  .app-editor {
+    display: block;
+    padding: 16px 12px calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .panel {
+    position: static;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .panel .actions {
+    display: none;
+  }
+
+  .view-config .preview,
+  .view-preview .panel {
+    display: none;
+  }
+
+  .preview .print-area {
+    gap: 14px;
+  }
+
+  .editor-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 12px rgba(20, 30, 50, 0.08);
+  }
+
+  .editor-bar button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  /* odstęp oddziela zakładki od akcji */
+  .editor-bar .tab + button:not(.tab) {
+    margin-left: 8px;
+  }
+
+  .editor-bar .tab-on {
+    border-color: var(--accent);
+    background: #eaf0fd;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* konfiguracja niewykonalna — komunikat jest w ustawieniach, a uczący może być w podglądzie */
+  .editor-bar .tab-alert::after {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 5px;
+    border-radius: 50%;
+    background: #c62828;
+    vertical-align: middle;
+  }
+
+  .editor-bar .primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .editor-bar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .range-row {
+    flex-wrap: wrap;
+  }
+
+  .add-blocks {
+    flex-wrap: wrap;
+  }
+
+  .add-blocks .add-block {
+    flex-basis: 140px;
+  }
+}
+
+@media screen and (max-width: 520px) {
+  .app {
+    padding: 20px 14px 48px;
+  }
+
+  .app-header h1 {
+    font-size: 22px;
+  }
+
+  .app-header p {
+    margin-bottom: 20px;
+  }
+
+  .filters {
+    padding: 14px;
+    margin-bottom: 22px;
+  }
+
+  .picker {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .card {
+    padding: 14px 16px;
+  }
+
+  .editor-bar {
+    gap: 4px;
+    padding-inline: 8px;
+  }
+
+  .editor-bar button {
+    font-size: 14px;
+  }
+
+  .editor-bar .tab + button:not(.tab) {
+    margin-left: 4px;
+  }
+}
+
+/* --- ekran dotykowy --- */
+
+@media (pointer: coarse) {
+  /* iOS przybliża stronę przy wejściu w pole z czcionką mniejszą niż 16 px */
+  .search input,
+  .field input[type='text'],
+  .field input[type='number'],
+  .field select {
+    font-size: 16px;
+  }
+
+  .field input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .chip {
+    padding: 7px 13px;
+  }
+
+  .block-tools {
+    gap: 6px;
+  }
+
+  .block-tools button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .add-block {
+    padding: 11px 8px;
+  }
 }
