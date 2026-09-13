@@ -31,7 +31,7 @@ export const writtenSubtraction: GeneratorDef = {
     if (b > a) return 'Odjemnik nie może mieć więcej cyfr niż odjemna — wynik byłby ujemny.';
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const digitsA = num(cfg, 'digitsA', 3);
     const digitsB = num(cfg, 'digitsB', 3);
     const borrow = choice<CarryMode>(cfg, 'borrow', 'any');
@@ -49,6 +49,7 @@ export const writtenSubtraction: GeneratorDef = {
         };
       },
       (p) => termsKey(p.terms),
+      seen,
     );
   },
 };

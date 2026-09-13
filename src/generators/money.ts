@@ -78,7 +78,7 @@ export const money: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const denominations = pool(cfg);
     const smallest = Math.min(...denominations);
     const cap = unit(cfg) === 'gr' ? num(cfg, 'maxGrosze', 100) : num(cfg, 'maxAmount', 20) * 100;
@@ -102,6 +102,7 @@ export const money: GeneratorDef = {
         return { kind: 'money', items: picked, total, label: formatMoney(total) };
       },
       (p) => p.items.join('|'),
+      seen,
     );
   },
 };

@@ -367,7 +367,7 @@ export const crossword: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const opt: Options = {
       equations: num(cfg, 'equations', 10),
       ops: enabledOps(cfg),
@@ -381,6 +381,7 @@ export const crossword: GeneratorDef = {
       count,
       () => build(rnd, opt),
       (p) => p.cells.flat().map((c) => (c ? (c.kind === 'num' ? c.value : c.kind) : '.')).join(','),
+      seen,
     );
   },
 };

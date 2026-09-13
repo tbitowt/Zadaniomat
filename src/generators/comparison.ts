@@ -100,7 +100,7 @@ export const comparison: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const sides = choice<Sides>(cfg, 'sides', 'mixed');
     const ops = enabledOps(cfg);
     const max = num(cfg, 'maxValue', 20);
@@ -130,6 +130,7 @@ export const comparison: GeneratorDef = {
         return { kind: 'compare', left, right, answer };
       },
       (p) => `${sideKey(p.left)}#${sideKey(p.right)}`,
+      seen,
     );
   },
 };

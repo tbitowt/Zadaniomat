@@ -400,7 +400,8 @@ if (introErrs.length) bad++;
 // --- bloki: kilka konfiguracji tego samego typu na jednym arkuszu ---
 
 await openCard(p, 'Uzupełnianie do pełnej liczby');
-await setNumber(p, 'Liczba zadań', 12);
+// „do 10” ma tylko dziewięć różnych zadań, więc blok zamawia osiem
+await setNumber(p, 'Liczba zadań', 8);
 await p.getByText('+ Dodaj blok zadań').click();
 const second = p.locator('.block-config').nth(1);
 await second.locator('label.field', { hasText: 'Nagłówek nad blokiem' }).locator('input').fill('Do stu');
@@ -424,11 +425,11 @@ const blockErrs = [];
 if (taskBlocks.length !== 2) blockErrs.push(`bloków ${taskBlocks.length} zamiast 2`);
 else {
   const [one, two] = taskBlocks;
-  if (one.targets.length !== 12 || two.targets.length !== 8) blockErrs.push('zła liczba zadań w blokach');
+  if (one.targets.length !== 8 || two.targets.length !== 8) blockErrs.push('zła liczba zadań w blokach');
   if (!one.targets.every((t) => t === 10)) blockErrs.push('pierwszy blok nie uzupełnia do 10');
   if (!two.targets.every((t) => t === 100)) blockErrs.push('drugi blok nie uzupełnia do 100');
   // numeracja biegnie przez całą stronę, a nie od nowa w każdym bloku
-  if (one.numbers[0] !== 1 || two.numbers[0] !== 13 || two.numbers.at(-1) !== 20) blockErrs.push('numeracja nie jest ciągła');
+  if (one.numbers[0] !== 1 || two.numbers[0] !== 9 || two.numbers.at(-1) !== 16) blockErrs.push('numeracja nie jest ciągła');
   if (one.heading !== '' || two.heading !== 'Do stu') blockErrs.push('złe nagłówki bloków');
   if (answerBlocks.length !== 2) blockErrs.push('arkusz odpowiedzi bez podziału na bloki');
   else if (answerBlocks.some((b, i) => b.targets.join(',') !== taskBlocks[i].targets.join(','))) {

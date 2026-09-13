@@ -37,14 +37,17 @@ function firstBadBlock(def: GeneratorDef, sections: Section[]) {
 const buildPages = (def: GeneratorDef, sections: Section[], variants: number, seed: number): SheetBlock[][] =>
   Array.from({ length: variants }, (_, i) => {
     const rnd = createRnd(variantSeed(seed, i));
+    // jeden zestaw kluczy na całą stronę — dzięki temu żadne zadanie nie wraca
+    // w kolejnym bloku ani w przykładach z ramki
+    const seen = new Set<string>();
     return sections.map((s) => {
       // wyjaśnienie idzie przed zadaniami, więc i przykłady losujemy jako pierwsze
       const rule = s.intro ? (def.explain?.(s.config) ?? null) : null;
       return {
         heading: s.heading,
         columns: s.columns,
-        intro: rule ? { rule, examples: def.generate(s.config, s.introCount, rnd) } : null,
-        problems: def.generate(s.config, s.count, rnd),
+        intro: rule ? { rule, examples: def.generate(s.config, s.introCount, rnd, seen) } : null,
+        problems: def.generate(s.config, s.count, rnd, seen),
         grid: s.config.grid === true,
         carryRow: s.config.carryRow === true,
       };
@@ -116,8 +119,9 @@ export default function App() {
         )}
         {short && (
           <p className="alert alert-warn">
-            {label(short.i)}udało się ułożyć tylko {short.got} z {short.want} zadań — poluzuj warunki (np.
-            przeniesienia lub liczbę cyfr).
+            {label(short.i)}w tych ustawieniach jest tylko {short.got} różnych zadań, a zamówionych było{' '}
+            {short.want}. Powtórek nie drukujemy — poluzuj warunki (np. przeniesienia lub liczbę cyfr) albo
+            zmniejsz liczbę zadań.
           </p>
         )}
         <div className="actions">

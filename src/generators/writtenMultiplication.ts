@@ -40,7 +40,7 @@ export const writtenMultiplication: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const digitsA = num(cfg, 'digitsA', 3);
     const digitsB = num(cfg, 'digitsB', 2);
     const carry = choice<CarryMode>(cfg, 'carry', 'any');
@@ -64,6 +64,7 @@ export const writtenMultiplication: GeneratorDef = {
         };
       },
       (p) => termsKey(p.terms),
+      seen,
     );
   },
 };

@@ -45,7 +45,7 @@ export const numberLine: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const ticks = num(cfg, 'ticks', 11);
     const step = num(cfg, 'step', 1);
     const maxValue = num(cfg, 'maxValue', 20);
@@ -63,7 +63,9 @@ export const numberLine: GeneratorDef = {
         for (const i of sample(rnd, range(1, ticks - 1), blanks)) hidden[i] = true;
         return { kind: 'numberline', values, hidden };
       },
-      (p) => `${p.values[0]}|${p.hidden.map((h) => (h ? 1 : 0)).join('')}`,
+      // cała podziałka, nie sam początek — te same opisy co 1 i co 5 to inne osie
+      (p) => `${p.values.join(',')}|${p.hidden.map((h) => (h ? 1 : 0)).join('')}`,
+      seen,
     );
   },
 };

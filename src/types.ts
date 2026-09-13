@@ -324,7 +324,13 @@ export interface GeneratorDef {
    * Typy bez wyjaśnienia nie mają w formularzu opcji „wyjaśnienie i przykłady”.
    */
   explain?: (cfg: Config) => string | null;
-  generate: (cfg: Config, count: number, rnd: Rnd) => Problem[];
+  /**
+   * Zadania do jednego bloku. `seen` to klucze zadań, które są już na tej
+   * stronie — generator dokłada je do zestawu i omija, żeby nic się nie
+   * powtórzyło między blokami ani z przykładami z ramki. Gdy różnych zadań
+   * jest mniej niż `count`, wraca ich tyle, ile się da.
+   */
+  generate: (cfg: Config, count: number, rnd: Rnd, seen?: Set<string>) => Problem[];
 }
 
 /** Generator liczb losowych (wstrzykiwany, żeby dało się go później zseedować). */

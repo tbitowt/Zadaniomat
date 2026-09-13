@@ -317,7 +317,7 @@ export const additionStrategies: GeneratorDef = {
     return null;
   },
   explain: (cfg) => RULES[strategy(cfg)],
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const s = strategy(cfg);
     const level = choice<Scaffold>(cfg, 'scaffold', 'full');
     const chain = (): Chain => {
@@ -337,6 +337,7 @@ export const additionStrategies: GeneratorDef = {
         return steps ? { kind: 'steps', steps: scaffolded(steps, level) } : null;
       },
       (p) => chainKey(p.steps),
+      seen,
     );
   },
 };

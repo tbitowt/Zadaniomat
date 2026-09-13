@@ -53,7 +53,9 @@ export const completion: GeneratorDef = {
   subject: 'matematyka',
   grades: [1, 2],
   category: 'rachunek',
-  sheetDefaults: { count: 20, columns: 4 },
+  // „do 10” z zakrytą drugą liczbą ma dokładnie dziewięć różnych zadań — tyle
+  // domyślnie drukujemy, żeby domyślna karta nie zaczynała się od komunikatu
+  sheetDefaults: { count: 9, columns: 3 },
   fields: [
     { kind: 'select', key: 'target', label: 'Do ilu uzupełniamy', options: targetOptions },
     {
@@ -86,7 +88,7 @@ export const completion: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const form = choice<Form>(cfg, 'form', 'add');
     const blank = choice<BlankPos>(cfg, 'blank', 'second');
     return collect<InlineProblem>(
@@ -110,6 +112,7 @@ export const completion: GeneratorDef = {
         };
       },
       (p) => `${p.terms.join('|')}${p.op}${p.blankIndex}`,
+      seen,
     );
   },
 };

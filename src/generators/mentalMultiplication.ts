@@ -115,7 +115,7 @@ export const mentalMultiplication: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const unknown = choice<UnknownMode>(cfg, 'unknown', 'result');
     const table = isTable(cfg);
     const [lo, hi] = tableRange(cfg);
@@ -145,6 +145,7 @@ export const mentalMultiplication: GeneratorDef = {
         };
       },
       (p) => termsKey(p.terms),
+      seen,
     );
   },
 };

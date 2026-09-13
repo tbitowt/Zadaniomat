@@ -334,6 +334,69 @@ await runCrossword(async () => {}, everyEqHasBlank, 'krzyżówka/domyślnie — 
 await runCrossword(async () => { await toggle(p, 'Mnożenie'); await toggle(p, 'Dzielenie'); await toggle(p, 'Odejmowanie'); await setNumber(p, 'Ile kratek zakryć (%)', 100); },
   everyEqHasBlank, 'krzyżówka/odejmowanie 100% — każde działanie z niewiadomą');
 
+// --- powtórzenia: żadne zadanie nie może wrócić drugi raz na tej samej stronie ---
+
+/** Tożsamość zadania: atrybuty z danymi, a przy krzyżówce dodatkowo treść kratek. */
+const identities = (sheet) =>
+  p.$$eval(`${sheet} .problem`, (els) =>
+    els.map((el) =>
+      JSON.stringify({
+        ...el.dataset,
+        cw: [...el.querySelectorAll('.cw-cell')].map((c) => c.textContent).join(','),
+      }),
+    ),
+  );
+
+/** `expected` to liczba zadań, jakiej się spodziewamy — przy ciasnych ustawieniach mniej niż zamówiono. */
+const runDupes = async (card, tweak, label, expected = null) => {
+  await openCard(p, card);
+  await tweak();
+  await p.waitForTimeout(400);
+  const keys = await identities('.sheet:first-of-type');
+  const repeats = keys.filter((k, i) => keys.indexOf(k) !== i);
+  const wrongCount = expected !== null && keys.length !== expected;
+  if (repeats.length || !keys.length || wrongCount) bad++;
+  console.log(
+    `${label}: ${keys.length} zadań${expected === null ? '' : ` (spodziewane ${expected})`}, powtórzonych ${repeats.length}`,
+    repeats.slice(0, 2),
+  );
+};
+
+await runDupes('Uzupełnianie do pełnej liczby', async () => {}, 'powtórki/uzupełnianie do 10');
+await runDupes('Mnożenie w pamięci', async () => {}, 'powtórki/tabliczka mnożenia');
+await runDupes('Zegar — godziny', async () => {}, 'powtórki/zegar co pół godziny');
+await runDupes('Oś liczbowa', async () => {}, 'powtórki/oś liczbowa');
+await runDupes('Pieniądze — ile to razem?', async () => {}, 'powtórki/pieniądze');
+await runDupes('Krzyżówki matematyczne', async () => {}, 'powtórki/krzyżówki');
+// ciasne ustawienia: zadań jest mniej, niż zamówiono — i ani jednego powtórzonego.
+// Pełne godziny na tarczy 12-godzinnej to dokładnie dwanaście różnych zadań.
+await runDupes('Zegar — godziny', async () => {
+  await setSelect(p, 'Dokładność', 'hour');
+  await setNumber(p, 'Liczba zadań', 30);
+}, 'powtórki/pełne godziny, zamówione 30 zadań', 12);
+// „do 10” z zakrytą drugą liczbą ma dziewięć różnych zadań
+await runDupes('Uzupełnianie do pełnej liczby', () => setNumber(p, 'Liczba zadań', 30),
+  'powtórki/uzupełnianie do 10, zamówione 30 zadań', 9);
+// drugi blok powiela ustawienia pierwszego — i mimo to nie może powtórzyć jego zadań
+await runDupes('Dodawanie w pamięci', () => p.getByText('+ Dodaj blok zadań').click(),
+  'powtórki/dwa bloki o tych samych ustawieniach');
+
+// przykłady w ramce to też zadania — nie mogą wrócić w zadaniach pod nią
+await openCard(p, 'Dodawanie ze strategią');
+await p.getByText('Zacznij od wyjaśnienia i przykładów').click();
+await setNumber(p, 'Ile przykładów', 3);
+await p.waitForTimeout(400);
+/** Samo działanie z lewej strony zapisu, bez spacji: „8+5”. */
+const lhs = (text) => text.split('=')[0].replace(/\s/g, '');
+const examples = await p.$$eval('.sheet:first-of-type .intro-example .inline-problem', (els) =>
+  els.map((e) => e.textContent),
+);
+const stepTasks = await p.$$eval('.sheet:first-of-type .problem', (els) => els.map((e) => e.dataset.steps));
+const taskLhs = stepTasks.map((s) => lhs(s.split('|')[0]));
+const shared = examples.map(lhs).filter((x) => taskLhs.includes(x));
+console.log(`powtórki/przykłady w ramce: ${examples.length} przykładów, wspólnych z zadaniami ${shared.length}`, shared);
+if (shared.length || examples.length !== 3) bad++;
+
 await b.close();
 console.log(bad ? 'NIEPOWODZENIE' : 'OK — wszystkie ograniczenia spełnione');
 if (bad) process.exitCode = 1;

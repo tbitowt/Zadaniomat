@@ -48,7 +48,7 @@ export const mentalSubtraction: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const termCount = num(cfg, 'termCount', 2);
     const digits = digitsList(cfg, 'digits', termCount);
     const maxValue = num(cfg, 'maxValue', 100);
@@ -71,6 +71,7 @@ export const mentalSubtraction: GeneratorDef = {
         };
       },
       (p) => termsKey(p.terms),
+      seen,
     );
   },
 };

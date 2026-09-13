@@ -90,7 +90,7 @@ export const mentalDivision: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const [lo, hi] = divisorRange(cfg);
     const maxDividend = num(cfg, 'maxDividend', 100);
     const maxQuotient = num(cfg, 'maxQuotient', 10);
@@ -117,6 +117,7 @@ export const mentalDivision: GeneratorDef = {
         };
       },
       (p) => p.terms.join('|'),
+      seen,
     );
   },
 };

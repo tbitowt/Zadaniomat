@@ -32,7 +32,7 @@ export const writtenAddition: GeneratorDef = {
     },
   ],
   defaults: { termCount: 2, digits: [3, 3], carry: 'with', grid: true, carryRow: false },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const termCount = num(cfg, 'termCount', 2);
     const digits = digitsList(cfg, 'digits', termCount, 3);
     const carry = choice<CarryMode>(cfg, 'carry', 'any');
@@ -52,6 +52,7 @@ export const writtenAddition: GeneratorDef = {
         };
       },
       (p) => termsKey(p.terms),
+      seen,
     );
   },
 };

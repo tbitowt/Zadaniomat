@@ -63,7 +63,7 @@ export const clock: GeneratorDef = {
     },
   ],
   defaults: { granularity: 'half', task: 'read', format: '12', ticks: true },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const minutes = minutesFor(choice<Granularity>(cfg, 'granularity', 'half'));
     const task = choice<Task>(cfg, 'task', 'read');
     const hours24 = choice<Format>(cfg, 'format', '12') === '24';
@@ -84,6 +84,7 @@ export const clock: GeneratorDef = {
         };
       },
       (p) => `${p.hour}:${p.minute}:${p.mode}`,
+      seen,
     );
   },
 };

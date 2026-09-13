@@ -35,7 +35,7 @@ export const evenOdd: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const mode = choice<Mode>(cfg, 'mode', 'even');
     const lo = num(cfg, 'minValue', 1);
     const hi = num(cfg, 'maxValue', 50);
@@ -57,6 +57,7 @@ export const evenOdd: GeneratorDef = {
         return null;
       },
       (p) => `${p.label}|${p.numbers.join(',')}`,
+      seen,
     );
   },
 };

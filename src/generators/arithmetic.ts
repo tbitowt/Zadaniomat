@@ -226,24 +226,39 @@ export function pickBlank(rnd: Rnd, mode: UnknownMode, terms: number[], op: Oper
 }
 
 /**
- * Powtarza `make`, aż uzbiera `count` różnych zadań.
- * Po serii powtórzeń przyjmuje duplikat, żeby nie zapętlić się przy wąskiej konfiguracji.
+ * Ile razy z rzędu wolno wylosować zadanie, które już jest na arkuszu, zanim
+ * uznamy pulę za wyczerpaną. Na tyle dużo, żeby przy puli wielkości arkusza
+ * trafić też ostatnie brakujące zadanie.
  */
-export function collect<T>(count: number, make: () => T | null, key: (item: T) => string): T[] {
+const MAX_REPEATS = 500;
+
+/**
+ * Powtarza `make`, aż uzbiera `count` różnych zadań. Duplikat nigdy nie trafia
+ * na arkusz — gdy konfiguracja nie daje tylu różnych zadań, wraca ich mniej,
+ * a formularz mówi o tym uczącemu.
+ *
+ * `seen` zbiera klucze zadań już wydrukowanych na tej stronie: jeden zestaw na
+ * całą stronę sprawia, że bloki i przykłady z ramki nie powtarzają zadań po sobie.
+ */
+export function collect<T>(
+  count: number,
+  make: () => T | null,
+  key: (item: T) => string,
+  seen: Set<string> = new Set(),
+): T[] {
   const out: T[] = [];
-  const seen = new Set<string>();
   let sinceNew = 0;
-  while (out.length < count) {
+  while (out.length < count && sinceNew < MAX_REPEATS) {
     const item = make();
     if (!item) break;
     const k = key(item);
-    if (!seen.has(k) || sinceNew > 40) {
-      seen.add(k);
-      out.push(item);
-      sinceNew = 0;
-    } else {
+    if (seen.has(k)) {
       sinceNew++;
+      continue;
     }
+    seen.add(k);
+    out.push(item);
+    sinceNew = 0;
   }
   return out;
 }

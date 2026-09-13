@@ -48,7 +48,7 @@ export const neighbours: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const step = num(cfg, 'step', 1);
     const which = choice<Which>(cfg, 'which', 'both');
     const [lo, hi] = middleRange(cfg);
@@ -66,7 +66,9 @@ export const neighbours: GeneratorDef = {
           after: mode === 'before' ? null : value + step,
         };
       },
-      (p) => `${p.value}|${p.before === null ? '' : 'b'}${p.after === null ? '' : 'a'}`,
+      // krok jest częścią zadania: „46 ← 47 → 48” to nie to samo, co „37 ← 47 → 57”
+      (p) => `${p.value}|${p.step}|${p.before === null ? '' : 'b'}${p.after === null ? '' : 'a'}`,
+      seen,
     );
   },
 };

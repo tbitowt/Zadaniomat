@@ -53,7 +53,7 @@ export const sequence: GeneratorDef = {
     }
     return null;
   },
-  generate: (cfg: Config, count, rnd) => {
+  generate: (cfg: Config, count, rnd, seen) => {
     const length = num(cfg, 'length', 6);
     const direction = choice<Direction>(cfg, 'direction', 'up');
     const [stepLo, stepHi] = stepRange(cfg);
@@ -78,6 +78,7 @@ export const sequence: GeneratorDef = {
         return { kind: 'sequence', values, hidden, step };
       },
       (p) => `${p.values.join(',')}|${p.hidden.map((h) => (h ? 1 : 0)).join('')}`,
+      seen,
     );
   },
 };

@@ -46,4 +46,12 @@ npm run check    # weryfikacja poprawności generatorów
   musi też podać `subject`, `grades` i `category`, bo po nich filtruje
   przeglądarka (`src/catalog.ts`, `src/components/Picker.tsx`). Nowy dział
   dopisuje się do `CategoryId` w `src/types.ts` i do listy `categories`.
+- **Zadania nigdy się nie powtarzają.** `collect()` w `src/generators/arithmetic.ts`
+  odrzuca duplikaty i nie dokłada powtórki nawet wtedy, gdy brakuje zadań —
+  wraca ich wtedy mniej, a panel w `App.tsx` mówi o tym uczącemu. Generator musi
+  przyjąć czwarty parametr `seen` i podać go do `collect`; to jeden zestaw kluczy
+  na całą stronę, dzięki któremu zadania nie wracają w kolejnym bloku ani
+  w przykładach z ramki. Klucz musi opisywać całe zadanie tak, jak widzi je
+  uczeń — jeśli pominie ustawienie, które zmienia treść (krok, podziałkę),
+  generator odrzuci zadania, które wcale się nie powtarzają.
 - **`temp/`** to lokalne notatki robocze, poza kontrolą wersji.
