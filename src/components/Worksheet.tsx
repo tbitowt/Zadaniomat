@@ -1,4 +1,5 @@
-import { Fragment } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import type {
   ClockProblem,
   ColumnProblem,
@@ -661,6 +662,42 @@ function blockOffsets(blocks: SheetBlock[]): number[] {
   return offsets;
 }
 
+/** Milimetr w pikselach CSS — arkusz jest opisany w mm, pomiary wychodzą w px. */
+const MM = 96 / 25.4;
+
+/**
+ * Czy treść arkusza wychodzi poza obszar druku. Mierzymy dolną krawędź
+ * ostatniego elementu względem wewnętrznej krawędzi kartki: `scrollHeight`
+ * przy przepełnieniu nie liczy dolnego paddingu, więc pomyliłby się o 15 mm.
+ * Zapas 1 mm bierze na siebie zaokrąglenia drukarki — lepiej ostrzec o milimetr
+ * za wcześnie niż wypuścić kartę, która złamie się na dwie strony.
+ */
+function useOverflow(ref: RefObject<HTMLDivElement | null>) {
+  const [over, setOver] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let alive = true;
+    const check = () => {
+      if (!alive || !el.isConnected) return;
+      const last = el.lastElementChild;
+      if (!last) {
+        setOver(false);
+        return;
+      }
+      const limit = el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).paddingBottom);
+      setOver(last.getBoundingClientRect().bottom > limit - MM);
+    };
+    check();
+    // czcionki i SVG dochodzą po pierwszym renderze i potrafią jeszcze urosnąć
+    document.fonts?.ready.then(check);
+    return () => {
+      alive = false;
+    };
+  });
+  return over;
+}
+
 function Page({
   title,
   blocks,
@@ -673,9 +710,12 @@ function Page({
   showAnswers: boolean;
 }) {
   const offsets = blockOffsets(blocks);
+  const ref = useRef<HTMLDivElement>(null);
+  const over = useOverflow(ref);
   return (
     <div
-      className={`sheet size-${sheet.fontSize} gap-${sheet.spacing}`}
+      ref={ref}
+      className={`sheet size-${sheet.fontSize} gap-${sheet.spacing}${over ? ' sheet-over' : ''}`}
       style={{ ['--blank-w' as string]: blankWidth(blocks.flatMap((b) => b.problems)) }}
     >
       <header className="sheet-header">
