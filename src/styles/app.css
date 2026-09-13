@@ -25,6 +25,10 @@ body {
   padding: 32px 24px 64px;
 }
 
+.app-header .link-back {
+  margin-bottom: 10px;
+}
+
 .app-header h1 {
   margin: 0 0 4px;
   font-size: 26px;
@@ -365,6 +369,18 @@ body {
   color: var(--muted);
 }
 
+/* rodzaj zadań przy numerze bloku — tylko na karcie z kilku rodzajów */
+.block-kind {
+  margin-left: 6px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.block-kind::before {
+  content: '· ';
+}
+
 .block-tools {
   display: flex;
   gap: 4px;
@@ -402,6 +418,16 @@ body {
 
 .add-block:hover {
   border-color: var(--accent);
+}
+
+/* dwa przyciski obok siebie: ten sam rodzaj zadań albo inny */
+.add-blocks {
+  display: flex;
+  gap: 6px;
+}
+
+.add-blocks .add-block {
+  flex: 1 1 0;
 }
 
 /* --- wczytany obrazek do kolorowanki --- */

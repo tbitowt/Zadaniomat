@@ -1,4 +1,4 @@
-import type { GeneratorDef } from '../types';
+import type { GeneratorDef, Section } from '../types';
 import { additionStrategies } from './additionStrategies';
 import { clock } from './clock';
 import { coloring } from './coloring';
@@ -41,3 +41,14 @@ export const generators: GeneratorDef[] = [
 ];
 
 export const getGenerator = (id: string) => generators.find((g) => g.id === id);
+
+/** Świeży blok zadań danego rodzaju — z domyślnymi ustawieniami generatora. */
+export const newSection = (g: GeneratorDef): Section => ({
+  generatorId: g.id,
+  config: { ...g.defaults },
+  count: g.sheetDefaults.count,
+  columns: g.sheetDefaults.columns,
+  heading: '',
+  intro: false,
+  introCount: 2,
+});

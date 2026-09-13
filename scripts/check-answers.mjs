@@ -402,7 +402,7 @@ if (introErrs.length) bad++;
 await openCard(p, 'Uzupełnianie do pełnej liczby');
 // „do 10” ma tylko dziewięć różnych zadań, więc blok zamawia osiem
 await setNumber(p, 'Liczba zadań', 8);
-await p.getByText('+ Dodaj blok zadań').click();
+await p.getByText('+ Ten sam rodzaj').click();
 const second = p.locator('.block-config').nth(1);
 await second.locator('label.field', { hasText: 'Nagłówek nad blokiem' }).locator('input').fill('Do stu');
 await second.locator('label.field', { hasText: 'Do ilu uzupełniamy' }).locator('select').selectOption('hundred');
@@ -438,6 +438,40 @@ else {
 }
 console.log(`bloki — dwa zestawy uzupełniania na jednej stronie: błędne: ${blockErrs.length}`, blockErrs);
 if (blockErrs.length) bad++;
+
+// --- karta z kilku rodzajów: dodawanie w pamięci, pod nim dzielenie ---
+
+await openCard(p, 'Dodawanie w pamięci');
+await setNumber(p, 'Liczba zadań', 6);
+await p.getByText('+ Inny rodzaj').click();
+await p.locator('.card-title', { hasText: 'Dzielenie w pamięci' }).click();
+await p.locator('.block-config').nth(1).locator('label.field', { hasText: 'Liczba zadań' }).locator('input').fill('6');
+await p.getByText('Dołącz arkusz odpowiedzi').click();
+await p.waitForTimeout(400);
+
+const readMixed = (sheet) => p.$$eval(`${sheet} .block`, (els) => els.map((el) => (
+  [...el.querySelectorAll('.problem')].map((x) => ({
+    op: x.dataset.op,
+    terms: x.dataset.terms.split(',').map(Number),
+    no: Number(x.querySelector('.problem-no').textContent.replace('.', '')),
+    answer: x.querySelector('.answer') ? Number(x.querySelector('.answer').textContent) : null,
+  }))
+)));
+const mixedTasks = await readMixed('.sheet:first-of-type');
+const mixedAnswers = await readMixed('.sheet:last-of-type');
+const mixedErrs = [];
+if (mixedTasks.length !== 2) mixedErrs.push(`bloków ${mixedTasks.length} zamiast 2`);
+else {
+  const [add, div] = mixedAnswers;
+  if (add.length !== 6 || div.length !== 6) mixedErrs.push('zła liczba zadań w blokach');
+  if (!add.every((r) => r.op === '+' && r.answer === r.terms[0] + r.terms[1])) mixedErrs.push('pierwszy blok to nie poprawne dodawanie');
+  if (!div.every((r) => r.op === ':' && r.answer * r.terms[1] === r.terms[0])) mixedErrs.push('drugi blok to nie poprawne dzielenie');
+  if (div[0]?.no !== 7) mixedErrs.push('numeracja nie biegnie przez oba rodzaje');
+  const strip = (blocks) => JSON.stringify(blocks.map((bl) => bl.map((r) => [r.op, r.terms])));
+  if (strip(mixedTasks) !== strip(mixedAnswers)) mixedErrs.push('odpowiedzi nie odpowiadają zadaniom');
+}
+console.log(`karta z kilku rodzajów zadań: błędne: ${mixedErrs.length}`, mixedErrs);
+if (mixedErrs.length) bad++;
 
 await b.close();
 console.log(bad ? 'NIEPOWODZENIE' : 'OK — wszystkie odpowiedzi zgodne');

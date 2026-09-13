@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { emptyFilters } from './catalog';
 import type { Filters } from './catalog';
 import { ConfigForm } from './components/ConfigForm';
 import { Picker } from './components/Picker';
 import { Worksheet } from './components/Worksheet';
-import { getGenerator } from './generators';
+import { getGenerator, newSection } from './generators';
 import { createRnd, randomSeed } from './rng';
-import type { GeneratorDef, Section, SheetBlock, SheetOptions } from './types';
+import type { Section, SheetBlock, SheetOptions } from './types';
 
 const sheetBase: Omit<SheetOptions, 'title'> = {
   answers: false,
@@ -17,13 +17,18 @@ const sheetBase: Omit<SheetOptions, 'title'> = {
   spacing: 'normal',
 };
 
+/** Tytuł karty złożonej z kilku rodzajów zadań, póki uczący nie wpisze własnego. */
+const MIXED_TITLE = 'Karta pracy';
+
 /** Kolejne zestawy różnią się ziarnem, ale całość nadal zależy tylko od `seed`. */
 const variantSeed = (seed: number, i: number) => (seed + i * 7919) >>> 0;
 
+const defOf = (s: Section) => getGenerator(s.generatorId)!;
+
 /** Pierwszy blok, którego konfiguracja jest niewykonalna. */
-function firstBadBlock(def: GeneratorDef, sections: Section[]) {
+function firstBadBlock(sections: Section[]) {
   for (const [index, s] of sections.entries()) {
-    const message = def.validate?.(s.config) ?? null;
+    const message = defOf(s).validate?.(s.config) ?? null;
     if (message) return { index, message };
   }
   return null;
@@ -31,16 +36,20 @@ function firstBadBlock(def: GeneratorDef, sections: Section[]) {
 
 /**
  * Strony arkusza: na każdej te same bloki, ale wylosowane z innego ziarna.
- * W obrębie strony bloki ciągną z jednego generatora po kolei, więc ziarno
- * odtwarza całą stronę.
+ * W obrębie strony bloki ciągną z jednego generatora liczb po kolei, więc
+ * ziarno odtwarza całą stronę — także wtedy, gdy bloki są różnych rodzajów.
  */
-const buildPages = (def: GeneratorDef, sections: Section[], variants: number, seed: number): SheetBlock[][] =>
+const buildPages = (sections: Section[], variants: number, seed: number): SheetBlock[][] =>
   Array.from({ length: variants }, (_, i) => {
     const rnd = createRnd(variantSeed(seed, i));
-    // jeden zestaw kluczy na całą stronę — dzięki temu żadne zadanie nie wraca
-    // w kolejnym bloku ani w przykładach z ramki
-    const seen = new Set<string>();
+    // jeden zestaw kluczy na rodzaj zadań na całą stronę — dzięki temu żadne
+    // zadanie nie wraca w kolejnym bloku ani w przykładach z ramki; osobny dla
+    // każdego rodzaju, bo „3|4” z dodawania nie jest powtórką „3|4” z mnożenia
+    const seenByKind = new Map<string, Set<string>>();
     return sections.map((s) => {
+      const def = defOf(s);
+      let seen = seenByKind.get(def.id);
+      if (!seen) seenByKind.set(def.id, (seen = new Set()));
       // wyjaśnienie idzie przed zadaniami, więc i przykłady losujemy jako pierwsze
       const rule = s.intro ? (def.explain?.(s.config) ?? null) : null;
       return {
@@ -55,38 +64,71 @@ const buildPages = (def: GeneratorDef, sections: Section[], variants: number, se
   });
 
 export default function App() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // pusta lista bloków to przeglądarka zadań; pierwszy wybrany rodzaj otwiera edytor
   const [sections, setSections] = useState<Section[]>([]);
+  // przeglądarka otwarta z edytora, żeby dołożyć blok innego rodzaju
+  const [adding, setAdding] = useState(false);
   const [sheet, setSheet] = useState<SheetOptions>({ title: '', ...sheetBase });
   const [seed, setSeed] = useState(randomSeed);
   // filtry przeglądarki żyją tutaj, żeby powrót z edytora wracał do tej samej listy
   const [filters, setFilters] = useState<Filters>(emptyFilters);
+  // gdzie był edytor przed wyjściem do przeglądarki i czy wracamy z nowym blokiem
+  const editorScroll = useRef(0);
+  const added = useRef(false);
 
-  const def = activeId ? getGenerator(activeId) : undefined;
+  // przeglądarka zaczyna się od góry; po powrocie edytor wraca tam, gdzie był,
+  // a jeśli doszedł blok — pokazuje jego ustawienia
+  useLayoutEffect(() => {
+    if (adding) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    window.scrollTo(0, editorScroll.current);
+    if (added.current) {
+      added.current = false;
+      [...document.querySelectorAll('.block-config')].at(-1)?.scrollIntoView({ block: 'start' });
+    }
+  }, [adding]);
+
+  const startAdding = () => {
+    editorScroll.current = window.scrollY;
+    setAdding(true);
+  };
 
   const open = (id: string) => {
     const g = getGenerator(id)!;
-    setActiveId(id);
-    setSections([
-      {
-        config: { ...g.defaults },
-        count: g.sheetDefaults.count,
-        columns: g.sheetDefaults.columns,
-        heading: '',
-        intro: false,
-        introCount: 2,
-      },
-    ]);
+    if (adding) {
+      const kinds = new Set(sections.map((s) => s.generatorId));
+      // tytuł wzięty z pierwszego rodzaju przestaje pasować, gdy dochodzi inny —
+      // ale tylko jeśli uczący go nie zmienił
+      if (!kinds.has(id) && sheet.title === defOf(sections[0]).title) {
+        setSheet({ ...sheet, title: MIXED_TITLE });
+      }
+      setSections([...sections, newSection(g)]);
+      added.current = true;
+      setAdding(false);
+      return;
+    }
+    setSections([newSection(g)]);
+    editorScroll.current = 0;
     setSheet({ title: g.title, ...sheetBase });
     setSeed(randomSeed());
   };
 
-  if (!def) {
-    return <Picker filters={filters} onFilters={setFilters} onOpen={open} />;
+  if (sections.length === 0 || adding) {
+    return (
+      <Picker
+        filters={filters}
+        onFilters={setFilters}
+        onOpen={open}
+        onCancel={adding ? () => setAdding(false) : undefined}
+      />
+    );
   }
 
-  const badBlock = firstBadBlock(def, sections);
-  const pages = badBlock ? [] : buildPages(def, sections, sheet.variants, seed);
+  const kinds = [...new Set(sections.map((s) => s.generatorId))];
+  const badBlock = firstBadBlock(sections);
+  const pages = badBlock ? [] : buildPages(sections, sheet.variants, seed);
 
   const label = (i: number) => (sections.length > 1 ? `Blok ${i + 1}: ` : '');
   // najmniej zadań, jakie udało się ułożyć w danym bloku (liczone po wszystkich zestawach)
@@ -98,14 +140,14 @@ export default function App() {
   return (
     <div className="app app-editor">
       <aside className="panel">
-        <button type="button" className="link-back" onClick={() => setActiveId(null)}>
+        <button type="button" className="link-back" onClick={() => setSections([])}>
           ← Wszystkie rodzaje zadań
         </button>
-        <h2>{def.title}</h2>
+        <h2>{kinds.length === 1 ? getGenerator(kinds[0])!.title : 'Karta z kilku rodzajów zadań'}</h2>
         <ConfigForm
-          def={def}
           sections={sections}
           onSections={setSections}
+          onAddKind={startAdding}
           sheet={sheet}
           onSheet={setSheet}
           seed={seed}

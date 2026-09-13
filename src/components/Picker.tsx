@@ -70,10 +70,13 @@ export function Picker({
   filters,
   onFilters,
   onOpen,
+  onCancel,
 }: {
   filters: Filters;
   onFilters: (f: Filters) => void;
   onOpen: (id: string) => void;
+  /** Podany, gdy przeglądarka dokłada blok do otwartej karty — wtedy da się z niej wrócić. */
+  onCancel?: () => void;
 }) {
   const found = filterGenerators(filters);
   const groups = groupByCategory(found);
@@ -82,10 +85,20 @@ export function Picker({
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Zadaniomat</h1>
-        <p>Przeglądaj rodzaje zadań, ustaw parametry i wydrukuj kartę pracy.</p>
-      </header>
+      {onCancel ? (
+        <header className="app-header">
+          <button type="button" className="link-back" onClick={onCancel}>
+            ← Wróć do karty
+          </button>
+          <h1>Dodaj blok do karty</h1>
+          <p>Wybierz rodzaj zadań — trafi na kartę jako kolejny blok, pod dotychczasowymi.</p>
+        </header>
+      ) : (
+        <header className="app-header">
+          <h1>Zadaniomat</h1>
+          <p>Przeglądaj rodzaje zadań, ustaw parametry i wydrukuj kartę pracy.</p>
+        </header>
+      )}
 
       <section className="filters" aria-label="Filtry">
         <div className="search">

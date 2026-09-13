@@ -259,11 +259,13 @@ export interface SheetDefaults {
 }
 
 /**
- * Blok zadań na arkuszu: własna konfiguracja generatora i własna liczba zadań.
- * Dzięki temu jedna strona może mieć np. 20 uzupełnień do 10, a pod spodem
- * 20 uzupełnień do najbliższej dziesiątki.
+ * Blok zadań na arkuszu: własny rodzaj zadań, konfiguracja i liczba zadań.
+ * Dzięki temu jedna strona może mieć np. 20 uzupełnień do 10, pod spodem
+ * 20 uzupełnień do najbliższej dziesiątki, a na końcu kilka zegarów.
  */
 export interface Section {
+  /** `id` generatora, z którego pochodzą zadania bloku. */
+  generatorId: string;
   config: Config;
   count: number;
   /** Na ile kolumn rozłożyć zadania tego bloku. */
@@ -325,9 +327,11 @@ export interface GeneratorDef {
    */
   explain?: (cfg: Config) => string | null;
   /**
-   * Zadania do jednego bloku. `seen` to klucze zadań, które są już na tej
-   * stronie — generator dokłada je do zestawu i omija, żeby nic się nie
-   * powtórzyło między blokami ani z przykładami z ramki. Gdy różnych zadań
+   * Zadania do jednego bloku. `seen` to klucze zadań tego rodzaju, które są
+   * już na tej stronie — generator dokłada je do zestawu i omija, żeby nic się
+   * nie powtórzyło między blokami ani z przykładami z ramki. Każdy rodzaj zadań
+   * ma na stronie własny zestaw, bo klucze różnych generatorów nie są ze sobą
+   * porównywalne („3|4” to i 3 + 4, i 3 × 4). Gdy różnych zadań
    * jest mniej niż `count`, wraca ich tyle, ile się da.
    */
   generate: (cfg: Config, count: number, rnd: Rnd, seen?: Set<string>) => Problem[];

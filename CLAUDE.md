@@ -50,8 +50,10 @@ npm run check    # weryfikacja poprawności generatorów
   odrzuca duplikaty i nie dokłada powtórki nawet wtedy, gdy brakuje zadań —
   wraca ich wtedy mniej, a panel w `App.tsx` mówi o tym uczącemu. Generator musi
   przyjąć czwarty parametr `seen` i podać go do `collect`; to jeden zestaw kluczy
-  na całą stronę, dzięki któremu zadania nie wracają w kolejnym bloku ani
-  w przykładach z ramki. Klucz musi opisywać całe zadanie tak, jak widzi je
+  na rodzaj zadań na całą stronę, dzięki któremu zadania nie wracają w kolejnym
+  bloku ani w przykładach z ramki. Na karcie z kilku rodzajów każdy generator
+  ma własny zestaw (`buildPages` w `App.tsx`), bo klucze nie niosą znaku
+  działania — „3|4” to zarówno 3 + 4, jak i 3 × 4. Klucz musi opisywać całe zadanie tak, jak widzi je
   uczeń — jeśli pominie ustawienie, które zmienia treść (krok, podziałkę),
   generator odrzuci zadania, które wcale się nie powtarzają.
 - **`temp/`** to lokalne notatki robocze, poza kontrolą wersji.

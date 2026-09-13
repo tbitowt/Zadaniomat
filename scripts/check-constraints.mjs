@@ -378,8 +378,29 @@ await runDupes('Zegar — godziny', async () => {
 await runDupes('Uzupełnianie do pełnej liczby', () => setNumber(p, 'Liczba zadań', 30),
   'powtórki/uzupełnianie do 10, zamówione 30 zadań', 9);
 // drugi blok powiela ustawienia pierwszego — i mimo to nie może powtórzyć jego zadań
-await runDupes('Dodawanie w pamięci', () => p.getByText('+ Dodaj blok zadań').click(),
+await runDupes('Dodawanie w pamięci', () => p.getByText('+ Ten sam rodzaj').click(),
   'powtórki/dwa bloki o tych samych ustawieniach');
+
+// różne rodzaje zadań nie zabierają sobie zadań: tabliczka 2–3 to „2|2”, „2|3”,
+// „3|2”, „3|3” — te same klucze co 2 + 2 czy 3 + 2 w dodawaniu, a przecież to
+// nie są powtórki. Dodawanie cyfra + cyfra z wynikiem 4–6 ma dwanaście zadań.
+const smallAddition = async (block) => {
+  await block.locator('.digits-row input').first().fill('1');
+  await block.locator('label.field', { hasText: 'Minimalny wynik' }).locator('input').fill('4');
+  await block.locator('label.field', { hasText: 'Maksymalny wynik' }).locator('input').fill('6');
+  await block.locator('label.field', { hasText: 'Liczba zadań' }).locator('input').fill('30');
+};
+await openCard(p, 'Mnożenie w pamięci');
+await setNumber(p, 'Czynniki od', 2);
+await setNumber(p, 'Czynniki do', 3);
+await setNumber(p, 'Liczba zadań', 4);
+await p.getByText('+ Inny rodzaj').click();
+await p.locator('.card-title', { hasText: 'Dodawanie w pamięci' }).click();
+await smallAddition(p.locator('.block-config').nth(1));
+await p.waitForTimeout(400);
+const perBlock = await p.$$eval('.sheet:first-of-type .block', (els) => els.map((el) => el.querySelectorAll('.problem').length));
+console.log(`powtórki/różne rodzaje na jednej karcie: zadań w blokach ${perBlock.join(' + ')} (spodziewane 4 + 12)`);
+if (perBlock.join(',') !== '4,12') bad++;
 
 // przykłady w ramce to też zadania — nie mogą wrócić w zadaniach pod nią
 await openCard(p, 'Dodawanie ze strategią');

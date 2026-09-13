@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import type { Config, Field, FontSize, GeneratorDef, Section, SheetOptions, Spacing } from '../types';
+import type { Config, Field, FontSize, Section, SheetOptions, Spacing } from '../types';
+import { getGenerator } from '../generators';
 import { digitsList, num } from '../generators/helpers';
 import type { Picture } from '../data/imageToPixels';
 import { pictureFromSource, readFile } from '../data/imageToPixels';
 import { PALETTE } from '../data/pixelArt';
 
 interface Props {
-  def: GeneratorDef;
   sections: Section[];
   onSections: (sections: Section[]) => void;
+  /** Otwiera przeglądarkę, żeby dołożyć blok innego rodzaju zadań. */
+  onAddKind: () => void;
   sheet: SheetOptions;
   onSheet: (sheet: SheetOptions) => void;
   seed: number;
@@ -185,31 +187,36 @@ function ImageField({
 /**
  * Jeden blok zadań: liczba zadań, opcjonalny nagłówek na wydruku i pola
  * generatora. Ramka i przyciski pojawiają się dopiero przy kilku blokach —
- * przy jednym formularz wygląda tak, jak wyglądał zawsze.
+ * przy jednym formularz wygląda tak, jak wyglądał zawsze. Na karcie z kilku
+ * rodzajów zadań nagłówek ramki mówi też, jaki to rodzaj.
  */
 function SectionForm({
-  def,
   section,
   index,
   many,
+  mixed,
   onSection,
   onRemove,
   onMove,
 }: {
-  def: GeneratorDef;
   section: Section;
   index: number;
   many: boolean;
+  mixed: boolean;
   onSection: (s: Section) => void;
   onRemove: () => void;
   onMove: (delta: number) => void;
 }) {
+  const def = getGenerator(section.generatorId)!;
   const fields = def.fields.filter((f) => !f.showIf || f.showIf(section.config));
   return (
     <div className={many ? 'block-config' : undefined}>
       {many && (
         <div className="block-head">
-          <span className="block-name">Blok {index + 1}</span>
+          <span className="block-name">
+            Blok {index + 1}
+            {mixed && <span className="block-kind">{def.title}</span>}
+          </span>
           <span className="block-tools">
             <button type="button" onClick={() => onMove(-1)} title="Przenieś wyżej">
               ↑
@@ -288,8 +295,9 @@ function SectionForm({
   );
 }
 
-export function ConfigForm({ def, sections, onSections, sheet, onSheet, seed, onSeed }: Props) {
+export function ConfigForm({ sections, onSections, onAddKind, sheet, onSheet, seed, onSeed }: Props) {
   const many = sections.length > 1;
+  const mixed = new Set(sections.map((s) => s.generatorId)).size > 1;
 
   const replace = (i: number, section: Section) =>
     onSections(sections.map((s, k) => (k === i ? section : s)));
@@ -300,6 +308,7 @@ export function ConfigForm({ def, sections, onSections, sheet, onSheet, seed, on
     onSections([
       ...sections,
       {
+        generatorId: last.generatorId,
         config: { ...last.config },
         count: last.count,
         columns: last.columns,
@@ -327,21 +336,26 @@ export function ConfigForm({ def, sections, onSections, sheet, onSheet, seed, on
         {sections.map((s, i) => (
           <SectionForm
             key={i}
-            def={def}
             section={s}
             index={i}
             many={many}
+            mixed={mixed}
             onSection={(next) => replace(i, next)}
             onRemove={() => remove(i)}
             onMove={(delta) => move(i, delta)}
           />
         ))}
-        <button type="button" className="add-block" onClick={add}>
-          + Dodaj blok zadań
-        </button>
+        <div className="add-blocks">
+          <button type="button" className="add-block" onClick={add}>
+            + Ten sam rodzaj
+          </button>
+          <button type="button" className="add-block" onClick={onAddKind}>
+            + Inny rodzaj
+          </button>
+        </div>
         <span className="field-help">
-          Kolejny blok to te same zadania z innymi ustawieniami — np. 20 uzupełnień do 10, a pod spodem 20 do
-          najbliższej dziesiątki.
+          Kolejny blok może powtórzyć ostatni z innymi ustawieniami — np. 20 uzupełnień do 10, a pod spodem 20
+          do najbliższej dziesiątki — albo dołożyć zupełnie inne zadania, np. zegary pod dodawaniem.
         </span>
       </section>
 
