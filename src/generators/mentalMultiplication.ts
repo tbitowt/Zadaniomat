@@ -1,17 +1,32 @@
 import type { Config, GeneratorDef, InlineProblem } from '../types';
-import { collect, makeMultiplication, pickBlank, termsKey, unknownOptions } from './arithmetic';
+import { collect, makeMultiplication, makeRangedMultiplication, pickBlank, termsKey, unknownOptions } from './arithmetic';
 import type { UnknownMode } from './arithmetic';
-import { bool, choice, digitsList, minForDigits, num } from './helpers';
+import type { Range } from './helpers';
+import { bool, choice, digitsList, digitsRange, minForDigits, num, rangeList } from './helpers';
 
-type Mode = 'table' | 'digits';
+type Mode = 'table' | 'digits' | 'ranges';
 
 const modeOptions = [
   { value: 'table', label: 'tabliczka mnożenia (zakres czynników)' },
   { value: 'digits', label: 'według liczby cyfr' },
+  { value: 'ranges', label: 'według zakresu od–do' },
 ];
 
-const isTable = (cfg: Config) => choice<Mode>(cfg, 'mode', 'table') === 'table';
-const isDigits = (cfg: Config) => !isTable(cfg);
+const mode = (cfg: Config) => choice<Mode>(cfg, 'mode', 'table');
+const isTable = (cfg: Config) => mode(cfg) === 'table';
+const isDigits = (cfg: Config) => mode(cfg) === 'digits';
+const isRanges = (cfg: Config) => mode(cfg) === 'ranges';
+
+/** Zakresy od–do czynników, tak jak wpisał je uczący; nieustawione wynikają z liczby cyfr. */
+const ranges = (cfg: Config): Range[] => {
+  const count = num(cfg, 'termCount', 2);
+  const digits = digitsList(cfg, 'digits', count);
+  return rangeList(cfg, 'ranges', count, (i) => digitsRange(digits[i]));
+};
+
+/** Zakresy czynników po odrzuceniu 0 i 1, jeśli ich nie chcemy. */
+const factorRanges = (cfg: Config): Range[] =>
+  bool(cfg, 'allowTrivial', false) ? ranges(cfg) : ranges(cfg).map(([lo, hi]) => [Math.max(lo, 2), hi]);
 
 /** Dolna granica czynników w trybie tabliczki — bez 0 i 1, jeśli ich nie chcemy. */
 const tableRange = (cfg: Config): [number, number] => {
@@ -56,7 +71,7 @@ export const mentalMultiplication: GeneratorDef = {
       label: 'Ile czynników',
       min: 2,
       max: 3,
-      showIf: isDigits,
+      showIf: (cfg) => !isTable(cfg),
     },
     {
       kind: 'digitsList',
@@ -68,13 +83,24 @@ export const mentalMultiplication: GeneratorDef = {
       showIf: isDigits,
     },
     {
+      kind: 'rangeList',
+      key: 'ranges',
+      label: 'Zakres poszczególnych czynników',
+      countKey: 'termCount',
+      min: 0,
+      max: 1000000,
+      fallback: (cfg, i) => ranges(cfg)[i],
+      showIf: isRanges,
+      help: 'Np. pierwszy czynnik od 11 do 20, drugi od 2 do 5.',
+    },
+    {
       kind: 'number',
       key: 'maxResult',
       label: 'Maksymalny wynik',
       min: 2,
       max: 1000000,
       step: 10,
-      showIf: isDigits,
+      showIf: (cfg) => !isTable(cfg),
     },
     {
       kind: 'boolean',
@@ -86,7 +112,7 @@ export const mentalMultiplication: GeneratorDef = {
       kind: 'select',
       key: 'unknown',
       label: 'Szukana liczba',
-      options: unknownOptions,
+      options: (cfg) => unknownOptions(isTable(cfg) ? 2 : num(cfg, 'termCount', 2)),
       help: 'Zamiast wyniku można zakryć czynnik: 7 × ___ = 56.',
     },
   ],
@@ -108,6 +134,17 @@ export const mentalMultiplication: GeneratorDef = {
       }
       return null;
     }
+    if (isRanges(cfg)) {
+      const empty = factorRanges(cfg).findIndex(([lo, hi]) => lo > hi);
+      if (empty >= 0) {
+        return `Po odrzuceniu 0 i 1 czynnik ${empty + 1} nie ma żadnej wartości — poszerz jego zakres albo dopuść mnożenie przez 0 i 1.`;
+      }
+      const minProduct = factorRanges(cfg).reduce((a, r) => a * r[0], 1);
+      if (minProduct > num(cfg, 'maxResult', 1000)) {
+        return `Przy tych zakresach najmniejszy możliwy iloczyn to ${minProduct} — zwiększ maksymalny wynik.`;
+      }
+      return null;
+    }
     const digits = digitsList(cfg, 'digits', num(cfg, 'termCount', 2));
     const minProduct = digits.reduce((a, d) => a * minForDigits(d), 1);
     if (minProduct > num(cfg, 'maxResult', 1000)) {
@@ -117,16 +154,18 @@ export const mentalMultiplication: GeneratorDef = {
   },
   generate: (cfg: Config, count, rnd, seen) => {
     const unknown = choice<UnknownMode>(cfg, 'unknown', 'result');
-    const table = isTable(cfg);
     const [lo, hi] = tableRange(cfg);
+    const termRanges = factorRanges(cfg);
     const termCount = num(cfg, 'termCount', 2);
     const digits = digitsList(cfg, 'digits', termCount);
     const maxResult = num(cfg, 'maxResult', 1000);
     const minFactor = bool(cfg, 'allowTrivial', false) ? 1 : 2;
 
-    const factors = table
+    const factors = isTable(cfg)
       ? () => (lo > hi ? null : [rnd.int(lo, hi), rnd.int(lo, hi)])
-      : () => makeMultiplication(rnd, digits, maxResult, minFactor);
+      : isRanges(cfg)
+        ? () => (termRanges.some(([a, b]) => a > b) ? null : makeRangedMultiplication(rnd, termRanges, maxResult))
+        : () => makeMultiplication(rnd, digits, maxResult, minFactor);
 
     return collect<InlineProblem>(
       count,

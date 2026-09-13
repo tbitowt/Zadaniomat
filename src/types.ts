@@ -190,6 +190,11 @@ export type Problem =
   | StepsProblem
   | PixelProblem;
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
 /** Część wspólna opisu pola konfiguracji. */
 interface FieldBase {
   key: string;
@@ -212,7 +217,8 @@ export type Field =
     })
   | (FieldBase & {
       kind: 'select';
-      options: { value: string; label: string }[];
+      /** Stała lista albo zależna od reszty ustawień (np. od liczby składników). */
+      options: SelectOption[] | ((cfg: Config) => SelectOption[]);
     })
   | (FieldBase & {
       /** Wczytanie obrazka (JPG/PNG) i zamiana go na siatkę kratek. */
@@ -231,6 +237,18 @@ export type Field =
       countKey: string;
       min: number;
       max: number;
+    })
+  | (FieldBase & {
+      /** Zakres „od–do” dla każdej liczby w działaniu — para pól na liczbę. */
+      kind: 'rangeList';
+      /** Klucz pola liczbowego, które określa długość listy; bez niego lista ma `labels.length` pozycji. */
+      countKey?: string;
+      /** Nazwy kolejnych liczb („odjemna”, „odjemnik”); bez nich liczby są numerowane. */
+      labels?: string[];
+      min: number;
+      max: number;
+      /** Zakres liczby, której uczący jeszcze nie ustawił — zwykle wynika z liczby cyfr. */
+      fallback: (cfg: Config, index: number) => [number, number];
     });
 
 export type Config = Record<string, unknown>;
@@ -327,11 +345,10 @@ export interface GeneratorDef {
    */
   explain?: (cfg: Config) => string | null;
   /**
-   * Zadania do jednego bloku. `seen` to klucze zadań tego rodzaju, które są
-   * już na tej stronie — generator dokłada je do zestawu i omija, żeby nic się
-   * nie powtórzyło między blokami ani z przykładami z ramki. Każdy rodzaj zadań
-   * ma na stronie własny zestaw, bo klucze różnych generatorów nie są ze sobą
-   * porównywalne („3|4” to i 3 + 4, i 3 × 4). Gdy różnych zadań
+   * Zadania do jednego bloku. `seen` to klucze zadań, które są już w tym bloku
+   * (przykłady z ramki) — generator dokłada je do zestawu i omija, żeby nic się
+   * nie powtórzyło w obrębie bloku. Każdy blok ma własny zestaw, więc kolejny
+   * blok może powtórzyć zadania poprzedniego. Gdy różnych zadań
    * jest mniej niż `count`, wraca ich tyle, ile się da.
    */
   generate: (cfg: Config, count: number, rnd: Rnd, seen?: Set<string>) => Problem[];

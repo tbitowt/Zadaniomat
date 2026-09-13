@@ -33,6 +33,7 @@ export const mentalDivision: GeneratorDef = {
       max: 20,
       help: 'Od 2 do 10 to dzielenie w zakresie tabliczki mnożenia.',
     },
+    { kind: 'number', key: 'minDividend', label: 'Najmniejsza liczba dzielona', min: 0, max: 1000000, step: 10 },
     { kind: 'number', key: 'maxDividend', label: 'Największa liczba dzielona', min: 2, max: 1000000, step: 10 },
     {
       kind: 'number',
@@ -58,7 +59,7 @@ export const mentalDivision: GeneratorDef = {
       kind: 'select',
       key: 'unknown',
       label: 'Szukana liczba',
-      options: unknownOptions,
+      options: unknownOptions(2),
       showIf: (cfg) => !withRemainder(cfg),
       help: 'Zamiast wyniku można zakryć dzielną albo dzielnik: 18 : ___ = 6.',
     },
@@ -66,6 +67,7 @@ export const mentalDivision: GeneratorDef = {
   defaults: {
     divisorFrom: 2,
     divisorTo: 10,
+    minDividend: 0,
     maxDividend: 100,
     maxQuotient: 10,
     allowTrivial: false,
@@ -84,14 +86,23 @@ export const mentalDivision: GeneratorDef = {
     if (num(cfg, 'maxQuotient', 10) < minQuotient) {
       return `Największy wynik musi być co najmniej ${minQuotient}.`;
     }
-    const minDividend = Math.max(2, lo) * minQuotient;
-    if (minDividend > num(cfg, 'maxDividend', 100)) {
-      return `Najmniejsza możliwa dzielna to ${minDividend} — zwiększ największą liczbę dzieloną.`;
+    const maxDividend = num(cfg, 'maxDividend', 100);
+    const smallest = Math.max(2, lo) * minQuotient;
+    if (smallest > maxDividend) {
+      return `Najmniejsza możliwa dzielna to ${smallest} — zwiększ największą liczbę dzieloną.`;
+    }
+    if (num(cfg, 'minDividend', 0) > maxDividend) {
+      return 'Najmniejsza liczba dzielona nie może być większa od największej.';
+    }
+    const largest = hi * num(cfg, 'maxQuotient', 10) + (withRemainder(cfg) ? hi - 1 : 0);
+    if (num(cfg, 'minDividend', 0) > largest) {
+      return `Przy tych dzielnikach i wyniku dzielna nie przekroczy ${largest} — zmniejsz najmniejszą liczbę dzieloną albo zwiększ największy wynik.`;
     }
     return null;
   },
   generate: (cfg: Config, count, rnd, seen) => {
     const [lo, hi] = divisorRange(cfg);
+    const minDividend = num(cfg, 'minDividend', 0);
     const maxDividend = num(cfg, 'maxDividend', 100);
     const maxQuotient = num(cfg, 'maxQuotient', 10);
     const minQuotient = bool(cfg, 'allowTrivial', false) ? 1 : 2;
@@ -102,7 +113,7 @@ export const mentalDivision: GeneratorDef = {
     return collect<InlineProblem>(
       count,
       () => {
-        const d = makeDivision(rnd, lo, hi, maxDividend, minQuotient, maxQuotient, rest);
+        const d = makeDivision(rnd, lo, hi, minDividend, maxDividend, minQuotient, maxQuotient, rest);
         if (!d) return null;
         const terms = [d.a, d.b];
         const blankIndex = pickBlank(rnd, unknown, terms, ':');

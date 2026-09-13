@@ -1,5 +1,7 @@
-import type { Operator, Rnd } from '../types';
+import type { Config, Operator, Rnd } from '../types';
+import type { Range } from './helpers';
 import {
+  choice,
   dedupeKey,
   fromDigits,
   hasBorrow,
@@ -24,16 +26,41 @@ export const borrowOptions = [
   { value: 'without', label: 'bez pożyczek' },
 ];
 
-/** Co jest niewiadomą w działaniu zapisanym w jednej linii. */
-export type UnknownMode = 'result' | 'term' | 'mixed';
+/**
+ * Co jest niewiadomą w działaniu zapisanym w jednej linii: wynik, konkretna
+ * liczba (`term0` to pierwsza), losowa z liczb albo losowo wynik lub liczba.
+ */
+export type UnknownMode = 'result' | 'term' | 'mixed' | `term${number}`;
 
-export const unknownOptions = [
+const ordinals = ['pierwsza', 'druga', 'trzecia', 'czwarta', 'piąta'];
+
+/** Opcje pola „Szukana liczba” dla działania z `count` liczbami. */
+export const unknownOptions = (count: number) => [
   { value: 'result', label: 'wynik' },
-  { value: 'term', label: 'jedna z liczb' },
-  { value: 'mixed', label: 'losowo' },
+  ...ordinals.slice(0, count).map((o, i) => ({ value: `term${i}`, label: `${o} liczba` })),
+  { value: 'term', label: 'jedna z liczb, losowo' },
+  { value: 'mixed', label: 'wynik albo liczba, losowo' },
 ];
 
+/** Jak uczący opisuje liczby w działaniu: liczbą cyfr albo zakresem od–do każdej z nich. */
+export type NumbersMode = 'digits' | 'ranges';
+
+export const numbersOptions = [
+  { value: 'digits', label: 'według liczby cyfr' },
+  { value: 'ranges', label: 'według zakresu od–do' },
+];
+
+export const byRanges = (cfg: Config) => choice<NumbersMode>(cfg, 'numbers', 'digits') === 'ranges';
+export const byDigits = (cfg: Config) => !byRanges(cfg);
+
 const TRIES = 400;
+
+/**
+ * Przy zakresach od–do przeniesienia i pożyczki sprawdzamy dopiero po
+ * wylosowaniu, więc prób jest więcej — rzadki warunek (np. dodawanie bez
+ * przeniesień przy szerokich zakresach) też ma szansę trafić.
+ */
+const RANGED_TRIES = 2000;
 
 /** Losowa permutacja indeksów 0..n-1. */
 function shuffledIndexes(rnd: Rnd, n: number): number[] {
@@ -101,6 +128,118 @@ export function makeAddition(
     return terms;
   }
   return additionTerms(rnd, digits, maxResult);
+}
+
+/**
+ * Składniki z zakresów od–do, których suma mieści się w [minResult, maxResult].
+ * Każdy składnik (w tasowanej kolejności) losowany jest z przedziału, który
+ * zostawia pozostałym miejsce w granicach sumy — przy wykonalnych ustawieniach
+ * nie trzeba więc zgadywać. `null`, gdy zakresy nie pozwalają trafić w sumę.
+ */
+function rangedAdditionTerms(rnd: Rnd, ranges: Range[], minResult: number, maxResult: number): number[] | null {
+  const terms = new Array<number>(ranges.length).fill(0);
+  let restLo = ranges.reduce((a, r) => a + r[0], 0);
+  let restHi = ranges.reduce((a, r) => a + r[1], 0);
+  let sum = 0;
+  for (const i of shuffledIndexes(rnd, ranges.length)) {
+    const [lo, hi] = ranges[i];
+    restLo -= lo;
+    restHi -= hi;
+    const from = Math.max(lo, minResult - sum - restHi);
+    const to = Math.min(hi, maxResult - sum - restLo);
+    if (from > to) return null;
+    terms[i] = rnd.int(from, to);
+    sum += terms[i];
+  }
+  return terms;
+}
+
+/** Składniki z zakresów od–do, z granicami sumy i trybem przeniesień. */
+export function makeRangedAddition(
+  rnd: Rnd,
+  ranges: Range[],
+  minResult: number,
+  maxResult: number,
+  carry: CarryMode,
+): number[] | null {
+  for (let attempt = 0; attempt < RANGED_TRIES; attempt++) {
+    const terms = rangedAdditionTerms(rnd, ranges, minResult, maxResult);
+    if (!terms) return null;
+    const carried = hasCarry(terms);
+    if ((carry === 'with' && !carried) || (carry === 'without' && carried)) continue;
+    return terms;
+  }
+  return null;
+}
+
+/**
+ * Odjemna i odjemniki z zakresów od–do; wynik nigdy nie schodzi poniżej zera.
+ * Odjemna jest co najmniej tak duża jak suma najmniejszych odjemników, a każdy
+ * odjemnik zostawia miejsce na kolejne — więc zgadujemy tylko pożyczki.
+ */
+export function makeRangedSubtraction(rnd: Rnd, ranges: Range[], borrow: CarryMode): number[] | null {
+  const [lo0, hi0] = ranges[0];
+  const restLo = ranges.slice(1).reduce((a, r) => a + r[0], 0);
+  const from = Math.max(lo0, restLo);
+  if (from > hi0) return null;
+  for (let attempt = 0; attempt < RANGED_TRIES; attempt++) {
+    let rest = rnd.int(from, hi0);
+    const terms = [rest];
+    let need = restLo;
+    let ok = true;
+    for (const [lo, hi] of ranges.slice(1)) {
+      need -= lo;
+      const b = rnd.int(lo, Math.min(hi, rest - need));
+      const borrowed = hasBorrow(rest, b);
+      if ((borrow === 'with' && !borrowed) || (borrow === 'without' && borrowed)) {
+        ok = false;
+        break;
+      }
+      terms.push(b);
+      rest -= b;
+    }
+    if (ok) return terms;
+  }
+  return null;
+}
+
+/**
+ * Czynniki z zakresów od–do, których iloczyn nie przekracza `maxResult`.
+ * Tak jak przy dodawaniu każdy czynnik zostawia miejsce na najmniejsze
+ * pozostałe; zero wśród nich znosi limit, bo iloczyn i tak będzie zerem.
+ */
+export function makeRangedMultiplication(rnd: Rnd, ranges: Range[], maxResult: number): number[] | null {
+  if (ranges.reduce((a, r) => a * r[0], 1) > maxResult) return null;
+  const terms = new Array<number>(ranges.length).fill(1);
+  const order = shuffledIndexes(rnd, ranges.length);
+  let product = 1;
+  for (const [k, i] of order.entries()) {
+    const [lo, hi] = ranges[i];
+    const restLo = order.slice(k + 1).reduce((a, j) => a * ranges[j][0], 1);
+    const bound = product * restLo;
+    const to = bound === 0 ? hi : Math.min(hi, Math.floor(maxResult / bound));
+    if (to < lo) return null;
+    terms[i] = rnd.int(lo, to);
+    product *= terms[i];
+  }
+  return terms;
+}
+
+/** Mnożna i mnożnik z zakresów od–do, z wymaganym trybem przeniesień. */
+export function makeRangedMultiplicationPair(
+  rnd: Rnd,
+  [loA, hiA]: Range,
+  [loB, hiB]: Range,
+  carry: CarryMode,
+): [number, number] | null {
+  for (let attempt = 0; attempt < RANGED_TRIES; attempt++) {
+    const a = rnd.int(loA, hiA);
+    const b = rnd.int(loB, hiB);
+    const carried = hasMulCarry(a, b);
+    if ((carry === 'with' && !carried) || (carry === 'without' && carried)) continue;
+    return [a, b];
+  }
+  return null;
 }
 
 /**
@@ -214,7 +353,9 @@ export function makeMultiplicationPair(
 /**
  * Który element działania jest zakryty: -1 to wynik, inaczej indeks liczby.
  * Przy mnożeniu nie zakrywamy czynnika, gdy którykolwiek z pozostałych jest
- * zerem — takie zadanie nie ma jednego rozwiązania.
+ * zerem — takie zadanie nie ma jednego rozwiązania, więc szukany jest wynik.
+ * Wynik zostaje też wtedy, gdy wybrana liczba wypadła poza działanie (np. po
+ * zmniejszeniu liczby składników z trzech do dwóch).
  */
 export function pickBlank(rnd: Rnd, mode: UnknownMode, terms: number[], op: Operator): number {
   const wanted = mode === 'mixed' ? (rnd.int(0, 1) === 0 ? 'result' : 'term') : mode;
@@ -222,6 +363,10 @@ export function pickBlank(rnd: Rnd, mode: UnknownMode, terms: number[], op: Oper
   const allowed = terms
     .map((_, i) => i)
     .filter((i) => op !== '×' || terms.every((t, j) => j === i || t !== 0));
+  if (wanted !== 'term') {
+    const fixed = Number(wanted.slice('term'.length));
+    return allowed.includes(fixed) ? fixed : -1;
+  }
   return allowed.length ? rnd.pick(allowed) : -1;
 }
 
@@ -237,8 +382,8 @@ const MAX_REPEATS = 500;
  * na arkusz — gdy konfiguracja nie daje tylu różnych zadań, wraca ich mniej,
  * a formularz mówi o tym uczącemu.
  *
- * `seen` zbiera klucze zadań już wydrukowanych na tej stronie: jeden zestaw na
- * całą stronę sprawia, że bloki i przykłady z ramki nie powtarzają zadań po sobie.
+ * `seen` zbiera klucze zadań już wydrukowanych w tym bloku: jeden zestaw na
+ * blok sprawia, że zadania nie powtarzają przykładów z ramki ani siebie nawzajem.
  */
 export function collect<T>(
   count: number,
@@ -275,13 +420,15 @@ export interface Division {
 
 /**
  * Dzielna i dzielnik dobrane tak, żeby iloraz był całkowity — a przy dzieleniu
- * z resztą, żeby reszta była niezerowa. `null`, gdy przy podanym zakresie nie
- * da się trafić w warunki.
+ * z resztą, żeby reszta była niezerowa. Dzielna mieści się w
+ * [minDividend, maxDividend]. `null`, gdy przy podanym zakresie nie da się
+ * trafić w warunki.
  */
 export function makeDivision(
   rnd: Rnd,
   divisorFrom: number,
   divisorTo: number,
+  minDividend: number,
   maxDividend: number,
   minQuotient: number,
   maxQuotient: number,
@@ -293,9 +440,10 @@ export function makeDivision(
   for (let attempt = 0; attempt < TRIES; attempt++) {
     const b = rnd.int(lo, divisorTo);
     const r = withRemainder ? rnd.int(1, b - 1) : 0;
+    const minQ = Math.max(minQuotient, Math.ceil((minDividend - r) / b));
     const maxQ = Math.min(maxQuotient, Math.floor((maxDividend - r) / b));
-    if (maxQ < minQuotient) continue;
-    const q = rnd.int(minQuotient, maxQ);
+    if (maxQ < minQ) continue;
+    const q = rnd.int(minQ, maxQ);
     return { a: q * b + r, b, q, r };
   }
   return null;

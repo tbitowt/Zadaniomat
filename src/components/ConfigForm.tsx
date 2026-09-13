@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Config, Field, FontSize, Section, SheetOptions, Spacing } from '../types';
 import { getGenerator } from '../generators';
-import { digitsList, num } from '../generators/helpers';
+import { digitsList, num, rangeList } from '../generators/helpers';
 import type { Picture } from '../data/imageToPixels';
 import { pictureFromSource, readFile } from '../data/imageToPixels';
 import { PALETTE } from '../data/pixelArt';
@@ -11,6 +11,8 @@ interface Props {
   onSections: (sections: Section[]) => void;
   /** Otwiera przeglądarkę, żeby dołożyć blok innego rodzaju zadań. */
   onAddKind: () => void;
+  /** Ile zadań udało się ułożyć w każdym bloku; `null`, gdy karta się nie ułożyła. */
+  got: (number | null)[];
   sheet: SheetOptions;
   onSheet: (sheet: SheetOptions) => void;
   seed: number;
@@ -18,6 +20,59 @@ interface Props {
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+/**
+ * Pole liczbowe, które nie przeszkadza w pisaniu. Tekst żyje w polu, a do
+ * konfiguracji trafia dopiero wtedy, gdy jest liczbą z zakresu — przycinanie
+ * przy każdym klawiszu zamieniało „1” w minimum i „15” wychodziło jako „25”.
+ * Po wyjściu z pola wartość spoza zakresu jest przycinana, a pusta wraca
+ * do ostatniej poprawnej.
+ */
+function NumberInput({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  ...rest
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (v: number) => void;
+  'aria-label'?: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <input
+      {...rest}
+      type="number"
+      min={min}
+      max={max}
+      step={step ?? 1}
+      value={draft ?? String(value)}
+      onChange={(e) => {
+        const text = e.target.value;
+        setDraft(text);
+        const n = Number(text);
+        if (text.trim() !== '' && Number.isFinite(n) && n >= min && n <= max) onChange(n);
+      }}
+      onBlur={() => {
+        if (draft === null) return;
+        const n = Number(draft);
+        if (draft.trim() !== '' && Number.isFinite(n)) {
+          const next = clamp(n, min, max);
+          if (next !== value) onChange(next);
+        }
+        setDraft(null);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+      }}
+    />
+  );
+}
 
 const fontSizes: { value: FontSize; label: string }[] = [
   { value: 'small', label: 'mała' },
@@ -38,13 +93,12 @@ function FieldRow({ field, config, onConfig }: { field: Field; config: Config; o
     return (
       <label className="field">
         <span className="field-label">{field.label}</span>
-        <input
-          type="number"
+        <NumberInput
           min={field.min}
           max={field.max}
-          step={field.step ?? 1}
+          step={field.step}
           value={num(config, field.key, field.min)}
-          onChange={(e) => set(clamp(Number(e.target.value) || field.min, field.min, field.max))}
+          onChange={set}
         />
         {field.help && <span className="field-help">{field.help}</span>}
       </label>
@@ -66,11 +120,15 @@ function FieldRow({ field, config, onConfig }: { field: Field; config: Config; o
   }
 
   if (field.kind === 'select') {
+    const options = typeof field.options === 'function' ? field.options(config) : field.options;
+    // wartość, której nie ma już na liście (np. „trzecia liczba” przy dwóch
+    // składnikach), pokazujemy jako pierwszą opcję — tak ją traktuje generator
+    const value = options.find((o) => o.value === config[field.key])?.value ?? options[0].value;
     return (
       <label className="field">
         <span className="field-label">{field.label}</span>
-        <select value={String(config[field.key] ?? field.options[0].value)} onChange={(e) => set(e.target.value)}>
-          {field.options.map((o) => (
+        <select value={value} onChange={(e) => set(e.target.value)}>
+          {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
@@ -85,6 +143,46 @@ function FieldRow({ field, config, onConfig }: { field: Field; config: Config; o
     return <ImageField field={field} config={config} onConfig={onConfig} />;
   }
 
+  if (field.kind === 'rangeList') {
+    const count = field.countKey ? num(config, field.countKey, 2) : (field.labels?.length ?? 2);
+    const ranges = rangeList(config, field.key, count, (i) => field.fallback(config, i), false);
+    const name = (i: number) => field.labels?.[i] ?? `${i + 1}. liczba`;
+    const setAt = (i: number, part: 0 | 1, n: number) => {
+      const next = ranges.map((r) => [...r]);
+      next[i][part] = n;
+      onConfig({ ...config, [field.key]: next });
+    };
+    return (
+      <div className="field">
+        <span className="field-label">{field.label}</span>
+        <div className="ranges">
+          {ranges.map(([lo, hi], i) => (
+            <div className="range-row" key={i}>
+              <span className="range-name">{name(i)}</span>
+              <span className="range-word">od</span>
+              <NumberInput
+                aria-label={`${name(i)} od`}
+                min={field.min}
+                max={field.max}
+                value={lo}
+                onChange={(n) => setAt(i, 0, n)}
+              />
+              <span className="range-word">do</span>
+              <NumberInput
+                aria-label={`${name(i)} do`}
+                min={field.min}
+                max={field.max}
+                value={hi}
+                onChange={(n) => setAt(i, 1, n)}
+              />
+            </div>
+          ))}
+        </div>
+        {field.help && <span className="field-help">{field.help}</span>}
+      </div>
+    );
+  }
+
   // digitsList — jedno pole na każdą liczbę w działaniu
   const count = num(config, field.countKey, 2);
   const values = digitsList(config, field.key, count);
@@ -95,14 +193,13 @@ function FieldRow({ field, config, onConfig }: { field: Field; config: Config; o
         {values.map((v, i) => (
           <span className="digit-box" key={i}>
             <span className="digit-index">{i + 1}.</span>
-            <input
-              type="number"
+            <NumberInput
               min={field.min}
               max={field.max}
               value={v}
-              onChange={(e) => {
+              onChange={(n) => {
                 const next = [...values];
-                next[i] = clamp(Number(e.target.value) || field.min, field.min, field.max);
+                next[i] = n;
                 onConfig({ ...config, [field.key]: next });
               }}
             />
@@ -195,6 +292,7 @@ function SectionForm({
   index,
   many,
   mixed,
+  got,
   onSection,
   onRemove,
   onMove,
@@ -203,6 +301,7 @@ function SectionForm({
   index: number;
   many: boolean;
   mixed: boolean;
+  got: number | null;
   onSection: (s: Section) => void;
   onRemove: () => void;
   onMove: (delta: number) => void;
@@ -243,23 +342,17 @@ function SectionForm({
       )}
       <label className="field">
         <span className="field-label">Liczba zadań</span>
-        <input
-          type="number"
-          min={1}
-          max={200}
-          value={section.count}
-          onChange={(e) => onSection({ ...section, count: clamp(Number(e.target.value) || 1, 1, 200) })}
-        />
+        <NumberInput min={1} max={200} value={section.count} onChange={(n) => onSection({ ...section, count: n })} />
       </label>
+      {got !== null && got < section.count && (
+        <p className="alert alert-warn alert-field">
+          W tych ustawieniach jest tylko {got} różnych zadań, a zamówionych było {section.count}. Powtórek nie
+          drukujemy — poluzuj warunki (np. przeniesienia lub liczbę cyfr) albo zmniejsz liczbę zadań.
+        </p>
+      )}
       <label className="field">
         <span className="field-label">Kolumny</span>
-        <input
-          type="number"
-          min={1}
-          max={6}
-          value={section.columns}
-          onChange={(e) => onSection({ ...section, columns: clamp(Number(e.target.value) || 1, 1, 6) })}
-        />
+        <NumberInput min={1} max={6} value={section.columns} onChange={(n) => onSection({ ...section, columns: n })} />
       </label>
       {def.explain && (
         <label className="field field-inline">
@@ -274,13 +367,7 @@ function SectionForm({
       {def.explain && section.intro && (
         <label className="field">
           <span className="field-label">Ile przykładów</span>
-          <input
-            type="number"
-            min={1}
-            max={6}
-            value={section.introCount}
-            onChange={(e) => onSection({ ...section, introCount: clamp(Number(e.target.value) || 1, 1, 6) })}
-          />
+          <NumberInput min={1} max={6} value={section.introCount} onChange={(n) => onSection({ ...section, introCount: n })} />
         </label>
       )}
       {fields.map((f) => (
@@ -295,7 +382,7 @@ function SectionForm({
   );
 }
 
-export function ConfigForm({ sections, onSections, onAddKind, sheet, onSheet, seed, onSeed }: Props) {
+export function ConfigForm({ sections, onSections, onAddKind, got, sheet, onSheet, seed, onSeed }: Props) {
   const many = sections.length > 1;
   const mixed = new Set(sections.map((s) => s.generatorId)).size > 1;
 
@@ -340,6 +427,7 @@ export function ConfigForm({ sections, onSections, onAddKind, sheet, onSheet, se
             index={i}
             many={many}
             mixed={mixed}
+            got={got[i] ?? null}
             onSection={(next) => replace(i, next)}
             onRemove={() => remove(i)}
             onMove={(delta) => move(i, delta)}
@@ -393,13 +481,7 @@ export function ConfigForm({ sections, onSections, onAddKind, sheet, onSheet, se
         </label>
         <label className="field">
           <span className="field-label">Liczba zestawów</span>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            value={sheet.variants}
-            onChange={(e) => onSheet({ ...sheet, variants: clamp(Number(e.target.value) || 1, 1, 10) })}
-          />
+          <NumberInput min={1} max={10} value={sheet.variants} onChange={(n) => onSheet({ ...sheet, variants: n })} />
           <span className="field-help">Każdy zestaw to osobna strona z innymi zadaniami.</span>
         </label>
         <label className="field field-inline">
@@ -428,13 +510,7 @@ export function ConfigForm({ sections, onSections, onAddKind, sheet, onSheet, se
         </label>
         <label className="field">
           <span className="field-label">Ziarno losowania</span>
-          <input
-            type="number"
-            min={0}
-            max={2147483647}
-            value={seed}
-            onChange={(e) => onSeed(clamp(Number(e.target.value) || 0, 0, 2147483647))}
-          />
+          <NumberInput min={0} max={2147483647} value={seed} onChange={(n) => onSeed(n)} />
           <span className="field-help">Ten sam numer daje dokładnie ten sam arkusz.</span>
         </label>
       </section>

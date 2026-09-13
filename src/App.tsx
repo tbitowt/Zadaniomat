@@ -11,7 +11,7 @@ import type { Section, SheetBlock, SheetOptions } from './types';
 const sheetBase: Omit<SheetOptions, 'title'> = {
   answers: false,
   variants: 1,
-  nameLine: true,
+  nameLine: false,
   numbering: true,
   fontSize: 'normal',
   spacing: 'normal',
@@ -42,14 +42,11 @@ function firstBadBlock(sections: Section[]) {
 const buildPages = (sections: Section[], variants: number, seed: number): SheetBlock[][] =>
   Array.from({ length: variants }, (_, i) => {
     const rnd = createRnd(variantSeed(seed, i));
-    // jeden zestaw kluczy na rodzaj zadań na całą stronę — dzięki temu żadne
-    // zadanie nie wraca w kolejnym bloku ani w przykładach z ramki; osobny dla
-    // każdego rodzaju, bo „3|4” z dodawania nie jest powtórką „3|4” z mnożenia
-    const seenByKind = new Map<string, Set<string>>();
     return sections.map((s) => {
       const def = defOf(s);
-      let seen = seenByKind.get(def.id);
-      if (!seen) seenByKind.set(def.id, (seen = new Set()));
+      // jeden zestaw kluczy na blok — zadanie nie wraca w tym samym bloku ani
+      // w przykładach z jego ramki, ale kolejny blok może je powtórzyć
+      const seen = new Set<string>();
       // wyjaśnienie idzie przed zadaniami, więc i przykłady losujemy jako pierwsze
       const rule = s.intro ? (def.explain?.(s.config) ?? null) : null;
       return {
@@ -132,9 +129,9 @@ export default function App() {
 
   const label = (i: number) => (sections.length > 1 ? `Blok ${i + 1}: ` : '');
   // najmniej zadań, jakie udało się ułożyć w danym bloku (liczone po wszystkich zestawach)
-  const short = sections
-    .map((s, i) => ({ i, want: s.count, got: Math.min(...pages.map((blocks) => blocks[i].problems.length)) }))
-    .find((b) => pages.length && b.got < b.want);
+  const got = sections.map((_, i) =>
+    pages.length ? Math.min(...pages.map((blocks) => blocks[i].problems.length)) : null,
+  );
   const total = pages[0]?.reduce((a, b) => a + b.problems.length, 0) ?? 0;
 
   return (
@@ -148,6 +145,7 @@ export default function App() {
           sections={sections}
           onSections={setSections}
           onAddKind={startAdding}
+          got={got}
           sheet={sheet}
           onSheet={setSheet}
           seed={seed}
@@ -157,13 +155,6 @@ export default function App() {
           <p className="alert">
             {label(badBlock.index)}
             {badBlock.message}
-          </p>
-        )}
-        {short && (
-          <p className="alert alert-warn">
-            {label(short.i)}w tych ustawieniach jest tylko {short.got} różnych zadań, a zamówionych było{' '}
-            {short.want}. Powtórek nie drukujemy — poluzuj warunki (np. przeniesienia lub liczbę cyfr) albo
-            zmniejsz liczbę zadań.
           </p>
         )}
         <div className="actions">

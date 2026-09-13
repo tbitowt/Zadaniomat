@@ -44,6 +44,35 @@ export const digitsList = (cfg: Config, key: string, count: number, fallback = 2
   });
 };
 
+/** Zakres „od–do” jednej liczby w działaniu. */
+export type Range = [number, number];
+
+/** Wszystkie liczby o `d` cyfrach jako zakres (2 -> [10, 99]). */
+export const digitsRange = (d: number): Range => [minForDigits(d), maxForDigits(d)];
+
+/**
+ * Lista zakresów „od–do” dla kolejnych liczb, przycięta / uzupełniona do
+ * `count`. Brakujące pozycje bierze z `fallback`, a zakres wpisany odwrotnie
+ * („od 20 do 10”) prostuje — tak jak robią to pola „od” i „do” w generatorach.
+ * Formularz czyta listę z `sorted = false`: prostowanie w trakcie pisania
+ * przerzucałoby wpisywaną liczbę do sąsiedniego pola.
+ */
+export const rangeList = (
+  cfg: Config,
+  key: string,
+  count: number,
+  fallback: (i: number) => Range,
+  sorted = true,
+): Range[] => {
+  const raw = Array.isArray(cfg[key]) ? (cfg[key] as unknown[]) : [];
+  return Array.from({ length: count }, (_, i) => {
+    const v = raw[i];
+    if (!Array.isArray(v) || typeof v[0] !== 'number' || typeof v[1] !== 'number') return fallback(i);
+    const [a, b] = [Math.floor(v[0]), Math.floor(v[1])];
+    return sorted ? [Math.min(a, b), Math.max(a, b)] : [a, b];
+  });
+};
+
 /** Losuje liczbę o dokładnie `d` cyfrach, dodatkowo ograniczoną przez `cap`. */
 export function pickWithDigits(rnd: { int: (a: number, b: number) => number }, d: number, cap = Infinity): number {
   const lo = minForDigits(d);

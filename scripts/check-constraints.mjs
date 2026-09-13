@@ -1,6 +1,6 @@
 // Sprawdza, czy wygenerowane zadania mieszczą się w zadanych ograniczeniach.
 import { chromium } from 'playwright';
-import { findEquations, openCard, readCrosswords, setNumber, setSelect, toggle } from './ui.mjs';
+import { findEquations, openCard, readCrosswords, setNumber, setRange, setSelect, toggle, typeNumber } from './ui.mjs';
 
 const carry = (t) => { let c = 0; const w = Math.max(...t.map(x => String(x).length));
   for (let i = 0; i < w; i++) { const s = t.reduce((a, x) => a + Math.floor(x / 10 ** i) % 10, c); c = Math.floor(s / 10); if (c) return true; } return false; };
@@ -41,6 +41,76 @@ await run('Mnożenie w pamięci', async () => { await setSelect(p, 'Skąd brać 
 await run('Mnożenie pisemne', () => setSelect(p, 'Przeniesienia', 'without'), t => !mulCarry(t[0], t[1]), 'mnoż. pisemne/bez przeniesień');
 await run('Mnożenie pisemne', () => setSelect(p, 'Przeniesienia', 'with'), t => mulCarry(t[0], t[1]), 'mnoż. pisemne/z przeniesieniem');
 
+// --- zakres od–do dla każdej liczby w działaniu ---
+
+const within = (x, [lo, hi]) => x >= lo && x <= hi;
+const byRanges = () => setSelect(p, 'Jak dobierać liczby', 'ranges');
+
+await run('Odejmowanie w pamięci', async () => {
+  await byRanges();
+  await setRange(p, '1. liczba', 10, 20);
+  await setRange(p, '2. liczba', 1, 10);
+}, t => t.length === 2 && within(t[0], [10, 20]) && within(t[1], [1, 10]) && t[0] - t[1] >= 0, 'zakresy/odejmowanie 10-20 minus 1-10');
+await run('Odejmowanie w pamięci', async () => {
+  await byRanges();
+  await setNumber(p, 'Ile liczb w działaniu', 3);
+  await setRange(p, '1. liczba', 25, 49);
+  await setRange(p, '2. liczba', 1, 4);
+  await setRange(p, '3. liczba', 1, 4);
+  await setSelect(p, 'Pożyczka (przekraczanie progu)', 'without');
+}, t => t.length === 3 && within(t[0], [25, 49]) && within(t[1], [1, 4]) && within(t[2], [1, 4])
+  && t[0] - t[1] - t[2] >= 0 && !borrow(t[0], t[1]) && !borrow(t[0] - t[1], t[2]), 'zakresy/odejmowanie trzech liczb bez pożyczek');
+await run('Dodawanie w pamięci', async () => {
+  await byRanges();
+  await setRange(p, '1. liczba', 10, 20);
+  await setRange(p, '2. liczba', 1, 10);
+  await setNumber(p, 'Maksymalny wynik', 25);
+  await setNumber(p, 'Minimalny wynik', 15);
+}, t => { const s = t[0] + t[1]; return within(t[0], [10, 20]) && within(t[1], [1, 10]) && s >= 15 && s <= 25; },
+'zakresy/dodawanie 10-20 plus 1-10, wynik 15-25');
+await run('Dodawanie w pamięci', async () => {
+  await byRanges();
+  await setRange(p, '1. liczba', 13, 19);
+  await setRange(p, '2. liczba', 3, 9);
+  await setSelect(p, 'Przekraczanie progu', 'with');
+}, t => within(t[0], [13, 19]) && within(t[1], [3, 9]) && carry(t), 'zakresy/dodawanie z przeniesieniem');
+await run('Mnożenie w pamięci', async () => {
+  await setSelect(p, 'Skąd brać czynniki', 'ranges');
+  await setRange(p, '1. liczba', 11, 20);
+  await setRange(p, '2. liczba', 0, 5);
+}, t => within(t[0], [11, 20]) && within(t[1], [2, 5]) && t[0] * t[1] <= 1000, 'zakresy/mnożenie 11-20 razy 2-5 (bez 0 i 1)');
+await run('Dodawanie pisemne', async () => {
+  await byRanges();
+  await setRange(p, '1. liczba', 100, 500);
+  await setRange(p, '2. liczba', 10, 99);
+}, t => within(t[0], [100, 500]) && within(t[1], [10, 99]) && carry(t), 'zakresy/dodawanie pisemne 100-500 plus 10-99');
+await run('Odejmowanie pisemne', async () => {
+  await byRanges();
+  await setRange(p, 'odjemna', 100, 200);
+  await setRange(p, 'odjemnik', 10, 99);
+}, t => within(t[0], [100, 200]) && within(t[1], [10, 99]) && borrow(t[0], t[1]), 'zakresy/odejmowanie pisemne 100-200 minus 10-99');
+await run('Mnożenie pisemne', async () => {
+  await byRanges();
+  await setRange(p, 'mnożna', 100, 300);
+  await setRange(p, 'mnożnik', 2, 9);
+}, t => within(t[0], [100, 300]) && within(t[1], [2, 9]) && mulCarry(t[0], t[1]), 'zakresy/mnożenie pisemne 100-300 razy 2-9');
+await run('Dzielenie w pamięci', async () => {
+  await setNumber(p, 'Najmniejsza liczba dzielona', 50);
+  await setNumber(p, 'Liczba zadań', 20);
+}, t => within(t[0], [50, 100]) && within(t[1], [2, 10]) && t[0] % t[1] === 0, 'zakresy/dzielenie, liczba dzielona 50-100');
+
+// --- wpisywanie liczb klawisz po klawiszu: pole nie może poprawiać wartości w trakcie pisania ---
+
+await openCard(p, 'Dodawanie w pamięci');
+const maxInput = await typeNumber(p, 'Maksymalny wynik', '15');
+const countInput = await typeNumber(p, 'Liczba zadań', '15');
+await p.waitForTimeout(300);
+const typed = [await maxInput.inputValue(), await countInput.inputValue()];
+const typedRows = await grab();
+const typedOk = typed.join(',') === '15,15' && typedRows.length === 15 && typedRows.every((t) => t[0] + t[1] <= 15);
+console.log(`wpisywanie/„15” w polach z minimum 2 i 1: pola ${typed.join(', ')}, zadań ${typedRows.length}`);
+if (!typedOk) bad++;
+
 // --- pozostałe typy zadań: czy trzymają się ustawień z formularza ---
 
 const grabData = () => p.$$eval('.sheet:first-of-type .problem', (els) => els.map((e) => ({ ...e.dataset })));
@@ -74,6 +144,35 @@ await runData('Dzielenie w pamięci', () => toggle(p, 'Dzielenie z resztą'), (r
   const rest = Number(r.rem);
   return rest >= 1 && rest < b && a <= 100 && (a - rest) % b === 0;
 }, 'dzielenie/z resztą');
+
+// szukana liczba: wybrana pozycja jest zakryta w każdym zadaniu, a lista
+// pozycji rośnie razem z liczbą składników
+await runData('Dodawanie w pamięci', () => setSelect(p, 'Szukana liczba', 'term0'),
+  (r) => Number(r.blank) === 0, 'szukana/dodawanie, pierwsza liczba');
+await runData('Dodawanie w pamięci', async () => {
+  await setNumber(p, 'Ile liczb do dodania', 3);
+  await setNumber(p, 'Maksymalny wynik', 1000);
+  await setSelect(p, 'Szukana liczba', 'term2');
+}, (r) => Number(r.blank) === 2, 'szukana/dodawanie trzech liczb, trzecia liczba');
+await runData('Odejmowanie w pamięci', () => setSelect(p, 'Szukana liczba', 'term1'),
+  (r) => Number(r.blank) === 1, 'szukana/odejmowanie, druga liczba');
+await runData('Mnożenie w pamięci', () => setSelect(p, 'Szukana liczba', 'term1'),
+  (r) => Number(r.blank) === 1, 'szukana/tabliczka mnożenia, druga liczba');
+await runData('Dzielenie w pamięci', () => setSelect(p, 'Szukana liczba', 'term0'),
+  (r) => Number(r.blank) === 0, 'szukana/dzielenie, pierwsza liczba');
+{
+  await openCard(p, 'Dodawanie w pamięci');
+  const labels = () =>
+    p.locator('label.field', { has: p.locator('.field-label', { hasText: 'Szukana liczba' }) })
+      .locator('option').allTextContents();
+  const two = await labels();
+  await setNumber(p, 'Ile liczb do dodania', 4);
+  await p.waitForTimeout(200);
+  const four = await labels();
+  const ok = two.includes('druga liczba') && !two.includes('trzecia liczba') && four.includes('czwarta liczba');
+  console.log(`szukana/opcje zależą od liczby składników: ${two.length} → ${four.length}`);
+  if (!ok) bad++;
+}
 
 // uzupełnianie do pełnej liczby
 await runData('Uzupełnianie do pełnej liczby', async () => {}, (r) => {
@@ -334,26 +433,32 @@ await runCrossword(async () => {}, everyEqHasBlank, 'krzyżówka/domyślnie — 
 await runCrossword(async () => { await toggle(p, 'Mnożenie'); await toggle(p, 'Dzielenie'); await toggle(p, 'Odejmowanie'); await setNumber(p, 'Ile kratek zakryć (%)', 100); },
   everyEqHasBlank, 'krzyżówka/odejmowanie 100% — każde działanie z niewiadomą');
 
-// --- powtórzenia: żadne zadanie nie może wrócić drugi raz na tej samej stronie ---
+// --- powtórzenia: żadne zadanie nie może wrócić drugi raz w tym samym bloku ---
 
 /** Tożsamość zadania: atrybuty z danymi, a przy krzyżówce dodatkowo treść kratek. */
 const identities = (sheet) =>
-  p.$$eval(`${sheet} .problem`, (els) =>
-    els.map((el) =>
-      JSON.stringify({
-        ...el.dataset,
-        cw: [...el.querySelectorAll('.cw-cell')].map((c) => c.textContent).join(','),
-      }),
+  p.$$eval(`${sheet} .block`, (blocks) =>
+    blocks.map((block) =>
+      [...block.querySelectorAll('.problem')].map((el) =>
+        JSON.stringify({
+          ...el.dataset,
+          cw: [...el.querySelectorAll('.cw-cell')].map((c) => c.textContent).join(','),
+        }),
+      ),
     ),
   );
+
+/** Zadania, które wracają drugi raz w obrębie swojego bloku. */
+const repeatsIn = (blocks) => blocks.flatMap((keys) => keys.filter((k, i) => keys.indexOf(k) !== i));
 
 /** `expected` to liczba zadań, jakiej się spodziewamy — przy ciasnych ustawieniach mniej niż zamówiono. */
 const runDupes = async (card, tweak, label, expected = null) => {
   await openCard(p, card);
   await tweak();
   await p.waitForTimeout(400);
-  const keys = await identities('.sheet:first-of-type');
-  const repeats = keys.filter((k, i) => keys.indexOf(k) !== i);
+  const blocks = await identities('.sheet:first-of-type');
+  const keys = blocks.flat();
+  const repeats = repeatsIn(blocks);
   const wrongCount = expected !== null && keys.length !== expected;
   if (repeats.length || !keys.length || wrongCount) bad++;
   console.log(
@@ -377,9 +482,19 @@ await runDupes('Zegar — godziny', async () => {
 // „do 10” z zakrytą drugą liczbą ma dziewięć różnych zadań
 await runDupes('Uzupełnianie do pełnej liczby', () => setNumber(p, 'Liczba zadań', 30),
   'powtórki/uzupełnianie do 10, zamówione 30 zadań', 9);
-// drugi blok powiela ustawienia pierwszego — i mimo to nie może powtórzyć jego zadań
-await runDupes('Dodawanie w pamięci', () => p.getByText('+ Ten sam rodzaj').click(),
-  'powtórki/dwa bloki o tych samych ustawieniach');
+// drugi blok powiela ustawienia pierwszego — każdy ma pełną pulę zadań, więc
+// przy dziewięciu możliwych zadaniach oba bloki dostają po dziewięć, bez powtórek w bloku
+await openCard(p, 'Uzupełnianie do pełnej liczby');
+await setNumber(p, 'Liczba zadań', 9);
+await p.getByText('+ Ten sam rodzaj').click();
+await p.waitForTimeout(400);
+{
+  const blocks = await identities('.sheet:first-of-type');
+  const sizes = blocks.map((k) => k.length).join(' + ');
+  const repeats = repeatsIn(blocks);
+  console.log(`powtórki/dwa bloki o tych samych ustawieniach: zadań w blokach ${sizes} (spodziewane 9 + 9), powtórzonych w bloku ${repeats.length}`);
+  if (sizes !== '9 + 9' || repeats.length) bad++;
+}
 
 // różne rodzaje zadań nie zabierają sobie zadań: tabliczka 2–3 to „2|2”, „2|3”,
 // „3|2”, „3|3” — te same klucze co 2 + 2 czy 3 + 2 w dodawaniu, a przecież to

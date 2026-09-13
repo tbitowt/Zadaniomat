@@ -14,7 +14,22 @@ export const setSelect = (page, label, value) =>
 export const setNumber = (page, label, value) =>
   field(page, label).locator('input[type=number]').first().fill(String(value));
 
-export const toggle = (page, label) => field(page, label).locator('input[type=checkbox]').first().click();
+/** Zakres „od–do” jednej liczby, np. setRange(page, '1. liczba', 10, 20) albo (page, 'odjemnik', 10, 99). */
+export async function setRange(page, name, lo, hi) {
+  await page.getByLabel(`${name} od`, { exact: true }).first().fill(String(lo));
+  await page.getByLabel(`${name} do`, { exact: true }).first().fill(String(hi));
+}
+
+/** Wpisuje tekst klawisz po klawiszu, jak człowiek — po zaznaczeniu starej wartości. */
+export async function typeNumber(page, label, text) {
+  const input = field(page, label).locator('input[type=number]').first();
+  await input.click();
+  await input.press('Control+A');
+  await input.pressSequentially(text);
+  return input;
+}
+
+export const toggle =(page, label) => field(page, label).locator('input[type=checkbox]').first().click();
 
 /** Otwiera edytor wybranego rodzaju zadań. */
 export async function openCard(page, card) {
