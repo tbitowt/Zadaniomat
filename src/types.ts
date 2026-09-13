@@ -176,8 +176,32 @@ export interface PixelProblem {
   palette: PixelColor[];
 }
 
+/** Ile podpowiedzi przy dzieleniu z zerami — od gotowych skreśleń po samo działanie. */
+export type ZerosScaffold = 'full' | 'short' | 'bare';
+
+/**
+ * Sprytne dzielenie z zerami na końcu: „40 000 : 5 000 = 40 : 5 = 8”
+ * albo „40 000 : 5 = 8 000”. Dzielna to `fact[0]` z dopisanymi `moved + crossed`
+ * zerami, dzielnik to `fact[1]` z `crossed` zerami, wynik to `fact[2]`
+ * z `moved` zerami.
+ */
+export interface ZerosProblem {
+  kind: 'zeros';
+  dividend: number;
+  divisor: number;
+  /** Ile zer skreślamy w obu liczbach naraz — tyle, ile ma ich dzielnik. */
+  crossed: number;
+  /** Ile zer zostaje w dzielnej po skreśleniu — przechodzą do wyniku. */
+  moved: number;
+  /** Działanie z tabliczki mnożenia, które zostaje po odłożeniu zer: 40 : 5 = 8. */
+  fact: [number, number, number];
+  result: number;
+  scaffold: ZerosScaffold;
+}
+
 export type Problem =
   | InlineProblem
+  | ZerosProblem
   | ColumnProblem
   | CrosswordProblem
   | CompareProblem
@@ -274,6 +298,8 @@ export interface SheetOptions {
 export interface SheetDefaults {
   count: number;
   columns: number;
+  /** Czy nowy blok zaczyna się od ramki z wyjaśnieniem — dla typów, które bez niej trudno zrozumieć. */
+  intro?: boolean;
 }
 
 /**

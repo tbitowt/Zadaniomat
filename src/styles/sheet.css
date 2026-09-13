@@ -618,6 +618,67 @@
   margin: 0 0.05em;
 }
 
+/* --- sprytne dzielenie z zerami --- */
+
+/* kolumna: działanie z zerami, pod nim działanie z tabliczki; numer zadania trzyma się pierwszej linii */
+.zeros-problem {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1.8mm;
+}
+
+.zeros-hint {
+  font-size: 0.86em;
+  color: #333;
+}
+
+.zeros-arrow {
+  margin: 0 0.35em 0 0.3em;
+  color: #777;
+}
+
+.zeros-note {
+  margin: 0 0.35em 0 0.5em;
+  font-size: 0.9em;
+  color: #555;
+}
+
+.z-group {
+  margin-left: 0.22em;
+}
+
+/* skreślone zero: ukośna kreska przez cyfrę, sama cyfra przygaszona */
+.z-struck {
+  position: relative;
+  color: #777;
+}
+
+.z-struck::after {
+  content: "";
+  position: absolute;
+  left: -0.18em;
+  right: -0.18em;
+  top: 55%;
+  border-top: 1.4pt solid #c62828;
+  transform: rotate(-62deg);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* zera, które przechodzą do wyniku — podkreślone w dzielnej, w podpowiedzi i w odpowiedzi */
+.z-moved,
+.z-tail {
+  text-decoration: underline;
+  text-decoration-color: #1565c0;
+  text-decoration-thickness: 1.4pt;
+  text-underline-offset: 0.18em;
+}
+
+.z-tail {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 /* --- kolorowanka --- */
 
 .problem-pixel {

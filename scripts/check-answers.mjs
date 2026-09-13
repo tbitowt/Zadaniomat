@@ -167,6 +167,8 @@ const readProblems = (sheet) =>
       sign: el.querySelector('.cmp-sign')?.textContent.trim() ?? null,
       cells: [...el.querySelectorAll('.pixel-cell')].map((x) => x.textContent.trim()),
       fills: [...el.querySelectorAll('.pixel-cell')].map((x) => x.style.background || ''),
+      struck: [...el.querySelectorAll('.z-struck')].map((x) => x.textContent),
+      underlined: [...el.querySelectorAll('.z-moved')].map((x) => x.textContent),
     })),
   );
 
@@ -348,7 +350,34 @@ checks.pixel = (t, a) => {
   return null;
 };
 
+checks.zeros = (t, a) => {
+  const [dividend, divisor, crossed, moved, result] = ['dividend', 'divisor', 'crossed', 'moved', 'result'].map((k) => Number(t.data[k]));
+  const [x, y, q] = list(t.data.fact);
+  if (x !== y * q || y < 2 || y > 9 || q < 2 || q > 9) return `działanie spoza tabliczki: ${t.data.fact}`;
+  if (dividend !== x * 10 ** (crossed + moved) || divisor !== y * 10 ** crossed) return `zera nie pasują do działania: ${dividend} : ${divisor}`;
+  if (result !== q * 10 ** moved || dividend !== result * divisor) return `zły wynik: ${dividend} : ${divisor} = ${result}`;
+  const scaffold = t.data.scaffold;
+  const blanks = { full: 2, short: 4, bare: 1 }[scaffold];
+  if (t.blanks !== blanks) return `${t.blanks} kratek zamiast ${blanks} (${scaffold})`;
+  // skreślenia i podkreślenia to same zera — po tyle samo w dzielnej i dzielniku
+  if ([...t.struck, ...t.underlined, ...a.struck, ...a.underlined].some((d) => d !== '0')) return 'oznaczona cyfra, która nie jest zerem';
+  const shown = scaffold === 'full';
+  if (t.struck.length !== (shown ? 2 * crossed : 0)) return `na arkuszu zadań ${t.struck.length} skreśleń`;
+  if (t.underlined.length !== (shown ? moved : 0)) return `na arkuszu zadań ${t.underlined.length} podkreśleń`;
+  if (a.struck.length !== 2 * crossed) return `w odpowiedziach ${a.struck.length} skreśleń zamiast ${2 * crossed}`;
+  // w odpowiedziach podkreślone są zera w dzielnej i te same zera w wyniku
+  if (a.underlined.length !== 2 * moved) return `w odpowiedziach ${a.underlined.length} podkreśleń zamiast ${2 * moved}`;
+  const hint = { full: [q], short: [x, y, q], bare: [] }[scaffold];
+  const expected = [result, ...hint].join(',');
+  if (a.answers.join(',') !== expected) return `złe odpowiedzi: ${a.answers} zamiast ${expected}`;
+  return null;
+};
+
 const stepCases = [
+  { card: 'Sprytne dzielenie z zerami', tweak: async () => {} },
+  { card: 'Sprytne dzielenie z zerami', tweak: (p) => setSelect(p, 'Ile podpowiedzi', 'short') },
+  { card: 'Sprytne dzielenie z zerami', tweak: async (p) => { await setSelect(p, 'Ile podpowiedzi', 'bare'); await setSelect(p, 'Największa liczba dzielona', '10000000'); } },
+  { card: 'Sprytne dzielenie z zerami', tweak: async (p) => { await setSelect(p, 'Gdzie są zera', 'mixed'); await setSelect(p, 'Największa liczba dzielona', '1000'); } },
   { card: 'Dodawanie ze strategią', tweak: async () => {} },
   { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Ile podpowiedzi', 'short') },
   { card: 'Dodawanie ze strategią', tweak: (p) => setSelect(p, 'Ile podpowiedzi', 'bare') },

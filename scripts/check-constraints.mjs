@@ -298,6 +298,47 @@ await runData('Pieniądze — ile to razem?', async () => {
   return items.length === 5 && items.every((v) => [...ZL, ...BANK].includes(v)) && Number(r.total) <= 15000;
 }, 'pieniądze/z banknotami, 5 sztuk, do 150 zł');
 
+// sprytne dzielenie z zerami
+const zeros = (r) => ({ ...Object.fromEntries(['dividend', 'divisor', 'crossed', 'moved'].map((k) => [k, Number(r[k])])), fact: list(r.fact) });
+await runData('Sprytne dzielenie z zerami', () => setSelect(p, 'Gdzie są zera', 'both'), (r) => {
+  const z = zeros(r);
+  return z.crossed >= 1 && z.moved === 0 && z.dividend <= 100000;
+}, 'zera/w obu liczbach — tylko skreślanie');
+await runData('Sprytne dzielenie z zerami', () => setSelect(p, 'Gdzie są zera', 'dividend'), (r) => {
+  const z = zeros(r);
+  return z.crossed === 0 && z.moved >= 1 && z.divisor === z.fact[1];
+}, 'zera/tylko w dzielnej — dzielnik bez zer');
+await runData('Sprytne dzielenie z zerami', () => setSelect(p, 'Gdzie są zera', 'mixed'), (r) => {
+  const z = zeros(r);
+  return z.crossed >= 1 && z.moved >= 1;
+}, 'zera/skreślanie i dopisywanie');
+await runData('Sprytne dzielenie z zerami', async () => {
+  await setSelect(p, 'Największa liczba dzielona', '1000');
+  await setNumber(p, 'Dzielnik bez zer od', 3);
+  await setNumber(p, 'Dzielnik bez zer do', 4);
+}, (r) => {
+  const z = zeros(r);
+  return z.dividend <= 1000 && z.fact[1] >= 3 && z.fact[1] <= 4;
+}, 'zera/do 1000, dzielnik 3-4');
+await runData('Sprytne dzielenie z zerami', () => setSelect(p, 'Największa liczba dzielona', '10000000'),
+  (r) => Number(r.dividend) <= 10000000, 'zera/do 10 000 000');
+{
+  await openCard(p, 'Sprytne dzielenie z zerami');
+  await p.waitForTimeout(300);
+  const examples = await p.$$eval('.sheet:first-of-type .intro-example', (els) => els.length);
+  const rule = await p.$eval('.sheet:first-of-type .intro-rule', (el) => el.textContent).catch(() => '');
+  console.log(`zera/wyjaśnienie włączone od razu: przykładów ${examples}`);
+  if (examples !== 2 || rule.length < 40) bad++;
+  // skreślanie i dopisywanie potrzebuje dwóch zer: 9 × 2 z dwoma zerami to już 1800
+  await setSelect(p, 'Gdzie są zera', 'mixed');
+  await setSelect(p, 'Największa liczba dzielona', '1000');
+  await setNumber(p, 'Dzielnik bez zer od', 9);
+  await p.waitForTimeout(300);
+  const alert = await p.locator('.alert').first().textContent().catch(() => '');
+  console.log(`zera/niewykonalne ustawienia: „${alert}”`);
+  if (!alert.includes('Najmniejsza możliwa dzielna')) bad++;
+}
+
 // --- strategie dodawania: czy zapis kroków pasuje do wybranej strategii ---
 
 const firstStep = (r) => r.steps.split('|')[0];
@@ -473,6 +514,7 @@ await runDupes('Zegar — godziny', async () => {}, 'powtórki/zegar co pół go
 await runDupes('Oś liczbowa', async () => {}, 'powtórki/oś liczbowa');
 await runDupes('Pieniądze — ile to razem?', async () => {}, 'powtórki/pieniądze');
 await runDupes('Krzyżówki matematyczne', async () => {}, 'powtórki/krzyżówki');
+await runDupes('Sprytne dzielenie z zerami', () => setNumber(p, 'Liczba zadań', 60), 'powtórki/dzielenie z zerami');
 // ciasne ustawienia: zadań jest mniej, niż zamówiono — i ani jednego powtórzonego.
 // Pełne godziny na tarczy 12-godzinnej to dokładnie dwanaście różnych zadań.
 await runDupes('Zegar — godziny', async () => {

@@ -24,6 +24,7 @@ npm run check    # weryfikacja poprawności generatorów (wymaga działającego 
 | Mnożenie w pamięci | tabliczka mnożenia (zakres czynników) albo liczba cyfr czynników, maksymalny wynik, mnożenie przez 0 i 1, szukana liczba |
 | Mnożenie pisemne | cyfry mnożnej i mnożnika, przeniesienia, wiersze na iloczyny częściowe, kratki na wynik, wiersz na przeniesienia |
 | Dzielenie w pamięci | zakres dzielnika, największa dzielna, największy wynik, dzielenie przez 1, dzielenie z resztą, szukana liczba |
+| Sprytne dzielenie z zerami | gdzie są zera (w obu liczbach, tylko w dzielnej, jedno i drugie), ile podpowiedzi, największa dzielna, dzielnik bez zer |
 | Dodawanie ze strategią | strategia (6 sposobów rachunku pamięciowego), ile podpowiedzi, zakres liczb |
 | Uzupełnianie do pełnej liczby | do ilu uzupełniamy (10, 20, 100, najbliższa dziesiątka, własna liczba), postać działania, która liczba zakryta |
 | Porównywanie liczb | co porównujemy (liczby, działania), które działania, największa liczba, ile zadań ze znakiem „=” |
@@ -59,6 +60,17 @@ zaokrąglenie z poprawką (`56 + 29 = 56 + 30 − 1`) oraz przerzucanie jednośc
 stopniach: wszystkie kroki, jeden krok pośredni albo samo działanie — z trzech
 bloków składa się wtedy karta „uczymy się → ćwiczymy → liczymy w pamięci".
 Każdy krok łańcucha ma tę samą wartość, zmienia się tylko zapis.
+
+**Sprytne dzielenie z zerami** sprowadza duże liczby do tabliczki mnożenia.
+Zera, które są w obu liczbach, skreślamy po tyle samo — wynik się nie zmienia
+(`40 000 : 5 000 = 40 : 5 = 8`); zera, które zostają w dzielnej, przechodzą do
+wyniku (`40 000 : 5 = 8 000`). Pod każdym działaniem jest podpowiedź
+`↳ 40 : 5 = ___ i dopisz 000`. Skreślone zera są przekreślone na czerwono,
+a zera wędrujące do wyniku podkreślone na niebiesko — tak samo w dzielnej,
+w podpowiedzi i w wyniku na arkuszu odpowiedzi. Przy pełnych podpowiedziach
+skreślenia są już narysowane, przy skróconych uczeń skreśla sam i zapisuje
+działanie z tabliczki, a bez podpowiedzi zostaje samo działanie. Ramka
+z wyjaśnieniem i przykładami jest przy tym typie włączona od razu.
 
 **Kolorowanka według wyniku** ukrywa obrazek w kratkach: każda kratka ma
 działanie, a legenda mówi, którym kolorem pokolorować dany wynik. Obrazek

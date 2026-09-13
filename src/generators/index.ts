@@ -17,6 +17,7 @@ import { sequence } from './sequence';
 import { writtenAddition } from './writtenAddition';
 import { writtenMultiplication } from './writtenMultiplication';
 import { writtenSubtraction } from './writtenSubtraction';
+import { zerosDivision } from './zerosDivision';
 
 /** Rejestr typów zadań — nowy generator wystarczy dopisać tutaj. */
 export const generators: GeneratorDef[] = [
@@ -27,6 +28,7 @@ export const generators: GeneratorDef[] = [
   mentalMultiplication,
   writtenMultiplication,
   mentalDivision,
+  zerosDivision,
   additionStrategies,
   completion,
   comparison,
@@ -49,6 +51,6 @@ export const newSection = (g: GeneratorDef): Section => ({
   count: g.sheetDefaults.count,
   columns: g.sheetDefaults.columns,
   heading: '',
-  intro: false,
+  intro: g.sheetDefaults.intro ?? false,
   introCount: 2,
 });

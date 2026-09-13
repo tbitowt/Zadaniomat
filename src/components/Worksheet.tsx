@@ -18,6 +18,7 @@ import type {
   StepsProblem,
   StepToken,
   SheetOptions,
+  ZerosProblem,
 } from '../types';
 
 const SIGN: Record<string, string> = { '+': '+', '-': '−', '×': '×', ':': ':' };
@@ -93,6 +94,8 @@ function blankWidth(problems: Problem[]) {
       p.values.forEach(see);
     } else if (p.kind === 'neighbor') {
       [p.value, p.before, p.after].forEach((n) => n !== null && see(n));
+    } else if (p.kind === 'zeros') {
+      see(p.result);
     }
   }
   return w;
@@ -485,6 +488,81 @@ function Steps({ problem, showAnswer }: { problem: StepsProblem; showAnswer: boo
 }
 
 /**
+ * Liczba rozpisana na cyfry, żeby dało się oznaczyć pojedyncze zera: ostatnie
+ * `crossed` są skreślane, `moved` przed nimi — podkreślane jako te, które idą
+ * do wyniku. Bez `mark` cyfry wyglądają zwyczajnie i uczeń skreśla sam.
+ * Liczby od pięciu cyfr dostają odstęp co trzy cyfry, jak w zeszycie.
+ */
+function ZeroNumber({ value, crossed, moved, mark }: { value: number; crossed: number; moved: number; mark: boolean }) {
+  const digits = [...String(value)];
+  return (
+    <span className="znum">
+      {digits.map((d, i) => {
+        const fromRight = digits.length - 1 - i;
+        const classes = ['zd'];
+        if (digits.length >= 5 && i > 0 && fromRight % 3 === 2) classes.push('z-group');
+        if (mark && fromRight < crossed) classes.push('z-struck');
+        else if (mark && fromRight < crossed + moved) classes.push('z-moved');
+        return (
+          <span className={classes.join(' ')} key={i}>
+            {d}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/**
+ * Sprytne dzielenie z zerami: działanie z zerami, a pod nim działanie z tabliczki,
+ * które zostaje po skreśleniu i odłożeniu zer. Pełne podpowiedzi rysują skreślenia
+ * od razu, skrócone zostawiają je uczniowi, a bez podpowiedzi zostaje samo działanie.
+ * Arkusz odpowiedzi zawsze pokazuje skreślenia — tak wygląda wzorcowe rozwiązanie.
+ */
+function Zeros({ problem, showAnswer }: { problem: ZerosProblem; showAnswer: boolean }) {
+  const { dividend, divisor, crossed, moved, result, scaffold } = problem;
+  const [a, b, q] = problem.fact;
+  const mark = showAnswer || scaffold === 'full';
+  const slot = (value: number, hidden: boolean) => {
+    if (!hidden) return <span className="term">{value}</span>;
+    return showAnswer ? <span className="answer">{value}</span> : <span className="blank blank-narrow" />;
+  };
+  return (
+    <span className="zeros-problem">
+      <span className="inline-problem">
+        <ZeroNumber value={dividend} crossed={crossed} moved={moved} mark={mark} />
+        <span className="op">:</span>
+        <ZeroNumber value={divisor} crossed={crossed} moved={0} mark={mark} />
+        <span className="op">=</span>
+        {showAnswer ? (
+          <span className="answer result">
+            <ZeroNumber value={result} crossed={0} moved={moved} mark />
+          </span>
+        ) : (
+          <span className="blank" />
+        )}
+      </span>
+      {scaffold !== 'bare' && (
+        <span className="inline-problem zeros-hint">
+          <span className="zeros-arrow">↳</span>
+          {slot(a, scaffold === 'short')}
+          <span className="op">:</span>
+          {slot(b, scaffold === 'short')}
+          <span className="op">=</span>
+          {slot(q, true)}
+          {moved > 0 && mark && (
+            <>
+              <span className="zeros-note">i dopisz</span>
+              <span className="z-tail">{'0'.repeat(moved)}</span>
+            </>
+          )}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/**
  * Kolorowanka: legenda „wynik → kolor” i siatka kratek z działaniami.
  * Arkusz odpowiedzi pokazuje sam pokolorowany obrazek.
  */
@@ -555,6 +633,8 @@ function ProblemView({
       return <NumberLine problem={problem} showAnswer={showAnswer} />;
     case 'steps':
       return <Steps problem={problem} showAnswer={showAnswer} />;
+    case 'zeros':
+      return <Zeros problem={problem} showAnswer={showAnswer} />;
     case 'pixel':
       return <Pixel problem={problem} showAnswer={showAnswer} />;
     default:
@@ -621,6 +701,17 @@ function problemData(p: Problem): Record<string, string> {
           .filter((t) => t.kind === 'num' && t.hidden)
           .map((t) => (t.kind === 'num' ? t.value : ''))
           .join(','),
+      };
+    case 'zeros':
+      return {
+        'data-kind': 'zeros',
+        'data-dividend': String(p.dividend),
+        'data-divisor': String(p.divisor),
+        'data-crossed': String(p.crossed),
+        'data-moved': String(p.moved),
+        'data-fact': p.fact.join(','),
+        'data-result': String(p.result),
+        'data-scaffold': p.scaffold,
       };
     case 'pixel':
       return {
