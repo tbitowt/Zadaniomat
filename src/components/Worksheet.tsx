@@ -327,11 +327,41 @@ function Clock({ problem, showAnswer }: { problem: ClockProblem; showAnswer: boo
   );
 }
 
+/**
+ * Nominaly: `size` to szerokosc w jednostkach --problem-size, dobrana wedlug
+ * proporcji prawdziwych srednic (1 gr 15,5 mm ... 5 zl 24 mm), `tone` to stop.
+ * Dzieki temu monety roznia sie od siebie tak samo jak te w portfelu.
+ */
+const COINS: Record<number, { size: number; tone: string }> = {
+  1: { size: 2.2, tone: 'copper' },
+  2: { size: 2.46, tone: 'copper' },
+  5: { size: 2.72, tone: 'copper' },
+  10: { size: 2.33, tone: 'silver' },
+  20: { size: 2.59, tone: 'silver' },
+  50: { size: 2.85, tone: 'silver' },
+  100: { size: 3.17, tone: 'silver' },
+  200: { size: 2.98, tone: 'gold' },
+  500: { size: 3.3, tone: 'bimetal' },
+};
+
+/** Banknoty roznia sie u nas glownie kolorem — rozmiar rosnie tylko lekko. */
+const NOTES: Record<number, { size: number; tone: string }> = {
+  1000: { size: 3.5, tone: 'n10' },
+  2000: { size: 3.7, tone: 'n20' },
+  5000: { size: 3.9, tone: 'n50' },
+  10000: { size: 4.1, tone: 'n100' },
+};
+
 /** Moneta albo banknot o zadanym nominale (w groszach). */
 function Cash({ value }: { value: number }) {
   if (value >= 1000) {
+    const { size, tone } = NOTES[value] ?? { size: 3.6, tone: 'n10' };
     return (
-      <svg className="note" viewBox="0 0 60 34">
+      <svg
+        className={`note note-${tone}`}
+        viewBox="0 0 60 34"
+        style={{ ['--cash-size' as string]: size }}
+      >
         <rect className="note-body" x="1" y="1" width="58" height="32" rx="3" />
         <rect className="note-inner" x="5" y="5" width="50" height="24" rx="2" />
         <text className="cash-value" x="30" y="18">
@@ -341,14 +371,19 @@ function Cash({ value }: { value: number }) {
     );
   }
   const zloty = value >= 100;
+  const { size, tone } = COINS[value] ?? { size: 2.6, tone: 'silver' };
   return (
-    <svg className="coin" viewBox="0 0 34 34">
+    <svg
+      className={`coin coin-${tone}`}
+      viewBox="0 0 34 34"
+      style={{ ['--cash-size' as string]: size }}
+    >
       <circle className="coin-body" cx="17" cy="17" r="16" />
       <circle className="coin-inner" cx="17" cy="17" r="12.5" />
-      <text className="cash-value" x="17" y="15">
+      <text className="cash-value" x="17" y="13.5">
         {zloty ? value / 100 : value}
       </text>
-      <text className="cash-unit" x="17" y="24">
+      <text className="cash-unit" x="17" y="23.5">
         {zloty ? 'zł' : 'gr'}
       </text>
     </svg>

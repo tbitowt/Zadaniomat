@@ -359,19 +359,25 @@
 
 .money-items {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   flex-wrap: wrap;
   gap: 1mm;
 }
 
+/* Rozmiar kazdego nominalu podaje komponent w --cash-size;
+   kolory stopu musza wyjsc takze na wydruku, bo po nich sie je rozpoznaje. */
 .coin {
-  width: calc(var(--problem-size) * 2.6);
-  height: calc(var(--problem-size) * 2.6);
+  width: calc(var(--problem-size) * var(--cash-size, 2.6));
+  height: calc(var(--problem-size) * var(--cash-size, 2.6));
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .note {
-  width: calc(var(--problem-size) * 3.6);
-  height: calc(var(--problem-size) * 2.04);
+  width: calc(var(--problem-size) * var(--cash-size, 3.6));
+  height: calc(var(--problem-size) * var(--cash-size, 3.6) / 1.765);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .coin-body {
@@ -386,6 +392,45 @@
   stroke-width: 0.6;
 }
 
+/* Stopy: grosze miedziane, zlotowki srebrne, 2 zl mosiezna, 5 zl dwukolorowa. */
+.coin-copper .coin-body {
+  fill: #e9c8a2;
+  stroke: #8a5a2b;
+}
+
+.coin-copper .coin-inner {
+  stroke: #bd8b5b;
+}
+
+.coin-silver .coin-body {
+  fill: #e7e9eb;
+  stroke: #4f5559;
+}
+
+.coin-silver .coin-inner {
+  stroke: #a5abb1;
+}
+
+.coin-gold .coin-body {
+  fill: #f0d89c;
+  stroke: #8a6d1f;
+}
+
+.coin-gold .coin-inner {
+  stroke: #c3a44f;
+}
+
+.coin-bimetal .coin-body {
+  fill: #e7e9eb;
+  stroke: #4f5559;
+}
+
+.coin-bimetal .coin-inner {
+  fill: #f0d89c;
+  stroke: #8a6d1f;
+  stroke-width: 0.8;
+}
+
 .note-body {
   fill: #fafafa;
   stroke: #333;
@@ -398,13 +443,61 @@
   stroke-width: 0.6;
 }
 
+/* Banknoty rozpoznaje sie po kolorze — tak jak prawdziwe. */
+.note-n10 .note-body {
+  fill: #f6e3d0;
+  stroke: #8a5f39;
+}
+
+.note-n10 .note-inner {
+  stroke: #c19468;
+}
+
+.note-n20 .note-body {
+  fill: #f4dbe9;
+  stroke: #8a4470;
+}
+
+.note-n20 .note-inner {
+  stroke: #c081a6;
+}
+
+.note-n50 .note-body {
+  fill: #d9e6f8;
+  stroke: #33578a;
+}
+
+.note-n50 .note-inner {
+  stroke: #7897c4;
+}
+
+.note-n100 .note-body {
+  fill: #dcefd9;
+  stroke: #3d6b38;
+}
+
+.note-n100 .note-inner {
+  stroke: #7aa574;
+}
+
 .cash-value {
   fill: #000;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   font-family: "Segoe UI", Arial, sans-serif;
   text-anchor: middle;
   dominant-baseline: central;
+}
+
+/* Grosze sa najmniejsze, wiec ich nominal musi byc wiekszy w skali monety. */
+.coin-copper .cash-value,
+.coin-silver .cash-value {
+  font-size: 13.5px;
+}
+
+.coin-copper .cash-unit,
+.coin-silver .cash-unit {
+  font-size: 9px;
 }
 
 .note .cash-value {
@@ -413,7 +506,8 @@
 
 .cash-unit {
   fill: #333;
-  font-size: 7.5px;
+  font-size: 8.5px;
+  font-weight: 600;
   font-family: "Segoe UI", Arial, sans-serif;
   text-anchor: middle;
   dominant-baseline: central;
